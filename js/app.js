@@ -35,9 +35,17 @@ const App = (() => {
       if (a) { e.preventDefault(); LocationDetail.open(a.dataset.openLoc); }
     });
 
-    // Register service worker
+    // Register service worker. updateViaCache:'none' forces the browser to
+    // always re-fetch sw.js from the network so new deploys are detected.
+    // When a new worker takes control, reload once so the fresh build shows.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.reload();
+      });
     }
 
     // Render map first so Leaflet can initialise

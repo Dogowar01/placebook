@@ -1,52 +1,45 @@
-const CACHE = 'placebook-v1';
+// Bump this string on every deploy that must invalidate caches.
+const CACHE = 'placebook-2026-06-17b';
+
 const PRECACHE = [
   '/placebook/',
   '/placebook/index.html',
-  '/placebook/css/main.css',
-  '/placebook/js/storage.js',
-  '/placebook/js/themes.js',
-  '/placebook/js/utils.js',
-  '/placebook/js/modal.js',
-  '/placebook/js/map.js',
-  '/placebook/js/location.js',
-  '/placebook/js/timeline.js',
-  '/placebook/js/food.js',
-  '/placebook/js/passport.js',
-  '/placebook/js/app.js',
   '/placebook/manifest.json',
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
-  );
+  // Activate the new worker immediately instead of waiting for old tabs.
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PRECACHE)).catch(() => {}));
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
+// Network-first so a fresh deploy is always picked up when online; fall back
+// to cache only when offline. This is what stops the app getting "stuck" on
+// an old cached build.
 self.addEventListener('fetch', e => {
   const { request } = e;
-  // Let Leaflet CDN and Google Fonts go through network-first
-  if (request.url.includes('unpkg.com') || request.url.includes('fonts.g')) {
-    e.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
-    return;
-  }
-  // Cache-first for everything else
+  if (request.method !== 'GET') return;
+
   e.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(resp => {
-      if (resp && resp.status === 200) {
-        const clone = resp.clone();
-        caches.open(CACHE).then(c => c.put(request, clone));
-      }
-      return resp;
-    }))
+    fetch(request)
+      .then(resp => {
+        // Cache a copy of successful same-origin responses for offline use.
+        if (resp && resp.status === 200 && request.url.startsWith(self.location.origin)) {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(request, clone));
+        }
+        return resp;
+      })
+      .catch(() =>
+        caches.match(request).then(cached => cached || caches.match('/placebook/index.html'))
+      )
   );
 });
