@@ -80,8 +80,14 @@ const MapScreen = (() => {
       exitAddMode();
     });
 
-    // Show empty state if no locations
-    if (locations.length === 0) showEmptyState();
+    // Show empty state only when there are no places AND onboarding isn't
+    // running (onboarding shows its own welcome flow over the map).
+    // NB: `Onboarding` is a top-level const, so it is NOT on `window` —
+    // reference it directly via a typeof guard.
+    const onboarding = (typeof Onboarding !== 'undefined') && Onboarding.isNeeded();
+    if (locations.length === 0 && !onboarding) {
+      showEmptyState();
+    }
   }
 
   function updateCount() {

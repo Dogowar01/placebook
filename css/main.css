@@ -27,6 +27,11 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  /* Lock the body to the real screen height in standalone PWA mode so
+     there is never a gap below the nav (iOS 100dvh can over-report). */
+  position: fixed;
+  inset: 0;
+  width: 100%;
 }
 
 button { font-family: var(--font); cursor: pointer; border: none; background: none; }
@@ -37,7 +42,7 @@ img { display: block; }
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -46,6 +51,10 @@ img { display: block; }
   flex: 1;
   overflow: hidden;
   position: relative;
+  /* z-index:0 creates a stacking context so Leaflet's internal panes
+     (z-index up to ~700) stay trapped here and don't paint over the
+     detail panel / modal which sit above this container. */
+  z-index: 0;
 }
 
 /* ─── Bottom Nav ───────────────────────────────────────── */
@@ -386,8 +395,6 @@ img { display: block; }
 }
 
 /* ─── Scrapbook Photo Wall ──────────────────────────────── */
-.scrapbook-section { /* no bleed needed */ }
-
 .scrapbook-label {
   font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1.2px;
@@ -396,107 +403,144 @@ img { display: block; }
 }
 
 .scrapbook-wall {
-  padding: 28px 16px 32px;
+  padding: 30px 14px 34px;
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 26px 20px;
   align-items: center;
   justify-content: center;
-  background: #FAF6F0;
-  border-radius: 20px;
-  overflow: visible;
+  /* warm parchment with a faint grid, like a real scrapbook page */
+  background:
+    linear-gradient(#00000008 1px, transparent 1px) 0 0 / 100% 22px,
+    #F6EFE3;
+  border-radius: 18px;
+}
+.scrapbook-wall.sb-dark {
+  background:
+    linear-gradient(#ffffff0d 1px, transparent 1px) 0 0 / 100% 22px,
+    #14181F;
 }
 
 /* ── Polaroid ── */
 .sb-polaroid {
-  background: #FFFEF7;
-  padding: 8px 8px 32px;
-  box-shadow: 0 6px 22px rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.08);
+  background: #fff;
+  padding: 9px 9px 34px;
+  border-radius: 2px;
+  box-shadow: 0 8px 22px rgba(40,30,20,0.22), 0 2px 5px rgba(40,30,20,0.12);
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  display: inline-block;
 }
 .sb-polaroid img {
   display: block;
-  width: 128px; height: 128px;
+  width: 134px; height: 132px;
   object-fit: cover;
 }
 .pol-caption {
   position: absolute;
-  bottom: 8px; left: 0; right: 0;
+  bottom: 9px; left: 6px; right: 6px;
   text-align: center;
   font-family: 'Lora', serif;
   font-style: italic;
-  font-size: 10px;
-  color: #888;
+  font-size: 12px;
+  color: #5b5650;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* ── Stamp (outline-based — reliable cross-browser) ── */
-.sb-stamp-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ── Stamp (perforated edge via mask — supported on iOS Safari) ── */
+.sb-stamp {
+  --r: 5px;  /* perforation radius */
+  --s: 10px; /* perforation spacing (2 * r) */
+  padding: 11px;
+  background: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  filter: drop-shadow(2px 5px 10px rgba(0,0,0,0.22));
+  filter: drop-shadow(2px 5px 9px rgba(40,30,20,0.28));
+  /* Punch semicircular notches along all four edges only — classic
+     postage-stamp perforation. Four edge gradients unioned together. */
+  -webkit-mask:
+    radial-gradient(var(--r) at var(--r) 0, #0000 98%, #000) 0 0 / var(--s) 50% repeat-x,
+    radial-gradient(var(--r) at var(--r) 100%, #0000 98%, #000) 0 100% / var(--s) 50% repeat-x,
+    radial-gradient(var(--r) at 0 var(--r), #0000 98%, #000) 0 0 / 50% var(--s) repeat-y,
+    radial-gradient(var(--r) at 100% var(--r), #0000 98%, #000) 100% 0 / 50% var(--s) repeat-y;
+          mask:
+    radial-gradient(var(--r) at var(--r) 0, #0000 98%, #000) 0 0 / var(--s) 50% repeat-x,
+    radial-gradient(var(--r) at var(--r) 100%, #0000 98%, #000) 0 100% / var(--s) 50% repeat-x,
+    radial-gradient(var(--r) at 0 var(--r), #0000 98%, #000) 0 0 / 50% var(--s) repeat-y,
+    radial-gradient(var(--r) at 100% var(--r), #0000 98%, #000) 100% 0 / 50% var(--s) repeat-y;
 }
-.sb-stamp-img {
+.sb-stamp-inner {
+  border: 2px solid var(--stamp-color, #4F46E5);
+  padding: 5px;
+  background: #fff;
+}
+.sb-stamp-inner img {
   display: block;
-  width: 120px; height: 120px;
+  width: 116px; height: 116px;
   object-fit: cover;
-  outline: 8px solid var(--stamp-color, #4F46E5);
-  outline-offset: 5px;
-  box-shadow: 0 0 0 13px #fff;
 }
-.sb-stamp-label {
-  margin-top: 16px;
-  font-size: 8px; font-weight: 700;
-  letter-spacing: 2px;
+.sb-stamp-cap {
+  text-align: center;
+  font-size: 8px; font-weight: 800;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--stamp-color, #4F46E5);
+  padding-top: 5px;
 }
 
 /* ── Postcard ── */
 .sb-postcard {
-  background: white;
-  border: 1.5px solid #E5E7EB;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  background: #fffdf8;
+  border: 1px solid #E7DFD0;
+  border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(40,30,20,0.2);
   cursor: pointer;
-  width: 210px;
+  width: 208px;
   overflow: hidden;
   flex-shrink: 0;
 }
 .sb-postcard-photo {
-  width: 100%; height: 112px;
+  width: 100%; height: 96px;
   object-fit: cover; display: block;
 }
 .sb-postcard-body {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px 10px;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 11px 11px;
+  border-top: 3px solid; /* accent set inline */
 }
-.sb-postcard-left { flex: 1; min-width: 0; }
+.sb-postcard-left {
+  flex: 1; min-width: 0;
+  border-right: 1px dashed #D8CFBE;
+  padding-right: 10px;
+  display: flex; flex-direction: column;
+}
 .sb-postcard-from {
   font-size: 7px; font-weight: 700;
-  letter-spacing: 2px; color: #9CA3AF;
-  text-transform: uppercase; margin-bottom: 2px;
+  letter-spacing: 2px; color: #B0A691;
+  text-transform: uppercase; margin-bottom: 3px;
 }
 .sb-postcard-place {
-  font-size: 11px; font-weight: 700;
-  margin-bottom: 6px;
+  font-family: 'Lora', serif;
+  font-size: 13px; font-weight: 700;
+  margin-bottom: 7px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sb-postcard-lines { display: flex; flex-direction: column; gap: 5px; }
-.sb-postcard-line { height: 1px; background: #E5E7EB; }
-.sb-postcard-right { flex-shrink: 0; }
+.sb-postcard-lines { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
+.sb-postcard-line { height: 1px; background: #E7DFD0; }
+.sb-postcard-line:nth-child(2) { width: 75%; }
+.sb-postcard-right {
+  flex-shrink: 0;
+  display: flex; align-items: flex-start; justify-content: center;
+}
 .sb-postcard-stamp-box {
-  width: 32px; height: 40px;
+  width: 34px; height: 40px;
   border-radius: 2px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 7px; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; text-align: center; line-height: 1.2;
+  font-size: 8px; font-weight: 800; letter-spacing: 0.5px;
+  text-transform: uppercase; text-align: center; line-height: 1;
+  transform: rotate(4deg);
 }
 
 /* Lightbox */

@@ -2,3 +2,5 @@
 Thumbs.db
 *.pem
 node_modules/
+.claude/
+next-env.d.ts

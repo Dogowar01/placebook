@@ -93,6 +93,7 @@ const Onboarding = (() => {
       });
 
       MapScreen.addMarker(loc);
+      MapScreen.updateCount();
       MapScreen.flyTo(loc);
       markDone();
       showToast(el);

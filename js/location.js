@@ -142,58 +142,65 @@ const LocationDetail = (() => {
 
   // ── Scrapbook photo wall ───────────────────────────────
   function buildScrapbook(loc, t) {
+    const dateShort = Utils.formatDateShort(loc.date || loc.createdAt);
+    const stampCap = (loc.country || 'Memory').toUpperCase();
+    const countryCode = (loc.country || '••').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || '✦';
+    const isDark = t.cardBg === '#1F2937';
+
     const items = loc.photos.map((src, i) => {
       const style = STYLES[i % 3];
       const rot   = ROTATIONS[i % ROTATIONS.length];
-      if (style === 'polaroid') return polaroidHtml(src, i, rot, loc.name);
-      if (style === 'stamp')    return stampHtml(src, i, rot, t.accent);
-      return postcardHtml(src, i, rot, loc.name, loc.country, t);
+      if (style === 'polaroid') return polaroidHtml(src, i, rot, i === 0 ? loc.name : dateShort);
+      if (style === 'stamp')    return stampHtml(src, i, rot, t.accent, stampCap);
+      return postcardHtml(src, i, rot, loc.name, countryCode, t);
     }).join('');
 
     return `
       <div class="scrapbook-section">
         <div class="scrapbook-label">Memories</div>
-        <div class="scrapbook-wall" style="background:${t.cardBg === '#1F2937' ? '#111827' : '#FAF6F0'}">
+        <div class="scrapbook-wall${isDark ? ' sb-dark' : ''}">
           ${items}
         </div>
       </div>
     `;
   }
 
-  function polaroidHtml(src, i, rot, name) {
+  function polaroidHtml(src, i, rot, caption) {
     return `
       <div class="sb-polaroid" data-photo-idx="${i}" style="transform:rotate(${rot}deg)">
         <img src="${src}" alt="photo">
-        <div class="pol-caption">${i === 0 ? Utils.escHtml(name) : '✨'}</div>
+        <div class="pol-caption">${Utils.escHtml(caption)}</div>
       </div>
     `;
   }
 
-  function stampHtml(src, i, rot, accentColor) {
+  function stampHtml(src, i, rot, accentColor, caption) {
     return `
-      <div class="sb-stamp-wrap" data-photo-idx="${i}" style="transform:rotate(${rot}deg);--stamp-color:${accentColor}">
-        <img class="sb-stamp-img" src="${src}" alt="photo">
-        <div class="sb-stamp-label">★ MEMORY ★</div>
+      <div class="sb-stamp" data-photo-idx="${i}" style="transform:rotate(${rot}deg);--stamp-color:${accentColor}">
+        <div class="sb-stamp-inner">
+          <img src="${src}" alt="photo">
+          <div class="sb-stamp-cap">${Utils.escHtml(caption.slice(0, 14))}</div>
+        </div>
       </div>
     `;
   }
 
-  function postcardHtml(src, i, rot, name, country, t) {
+  function postcardHtml(src, i, rot, name, countryCode, t) {
     return `
       <div class="sb-postcard" data-photo-idx="${i}" style="transform:rotate(${rot}deg)">
         <img src="${src}" alt="photo" class="sb-postcard-photo">
-        <div class="sb-postcard-body" style="border-top:3px solid ${t.accent}">
+        <div class="sb-postcard-body" style="border-top-color:${t.accent}">
           <div class="sb-postcard-left">
-            <div class="sb-postcard-from">FROM</div>
-            <div class="sb-postcard-place" style="color:${t.accent}">${Utils.escHtml(name.slice(0,18))}</div>
+            <div class="sb-postcard-from">Postcard from</div>
+            <div class="sb-postcard-place" style="color:${t.accent}">${Utils.escHtml(name.slice(0,16))}</div>
             <div class="sb-postcard-lines">
               <div class="sb-postcard-line"></div>
               <div class="sb-postcard-line"></div>
             </div>
           </div>
           <div class="sb-postcard-right">
-            <div class="sb-postcard-stamp-box" style="background:${t.accent}20;border:1.5px solid ${t.accent}40;color:${t.accent}">
-              ${(country||'').slice(0,6).toUpperCase()}
+            <div class="sb-postcard-stamp-box" style="background:${t.accent}1f;border:1.5px solid ${t.accent}55;color:${t.accent}">
+              ${countryCode}
             </div>
           </div>
         </div>
