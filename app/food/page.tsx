@@ -59,7 +59,7 @@ export default function FoodPage() {
 
   if (stats.total === 0) {
     return (
-      <div className="h-screen flex flex-col">
+      <div className="flex flex-col" style={{ minHeight: "100dvh" }}>
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="text-center">
             <div className="text-5xl mb-4">🍽️</div>
@@ -76,7 +76,7 @@ export default function FoodPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="bg-gray-50" style={{ minHeight: "100dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-5 pt-14 pb-5">
         <h1 className="text-2xl font-bold text-gray-900">Food Journal</h1>

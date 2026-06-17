@@ -41,9 +41,9 @@ export default function MapPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 z-[500] flex items-center justify-between px-4 pt-safe pt-4 pb-3 pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 z-[500] flex items-center justify-between px-4 pb-3 pointer-events-none" style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
         <div className="pointer-events-auto">
           <div className="bg-white/90 backdrop-blur-md rounded-2xl px-4 py-2 shadow-lg flex items-center gap-2">
             <span className="text-xl">📖</span>

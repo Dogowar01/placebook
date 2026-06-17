@@ -48,7 +48,7 @@ export default function LocationPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.font} pb-24`}>
+    <div className={`${theme.bg} ${theme.font}`} style={{ minHeight: "100dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
       {/* Hero photo or theme banner */}
       <div className="relative">
         {location.photos.length > 0 ? (
@@ -70,7 +70,8 @@ export default function LocationPage({ params }: { params: Promise<{ id: string 
         {/* Back button */}
         <button
           onClick={() => router.back()}
-          className="absolute top-12 left-4 bg-black/40 backdrop-blur-sm text-white rounded-full p-2.5"
+          className="absolute left-4 bg-black/40 backdrop-blur-sm text-white rounded-full p-2.5"
+          style={{ top: "max(3rem, calc(env(safe-area-inset-top) + 0.75rem))" }}
         >
           <ArrowLeft size={20} />
         </button>
@@ -78,7 +79,8 @@ export default function LocationPage({ params }: { params: Promise<{ id: string 
         {/* Delete */}
         <button
           onClick={() => setShowDelete(true)}
-          className="absolute top-12 right-4 bg-black/40 backdrop-blur-sm text-white rounded-full p-2.5"
+          className="absolute right-4 bg-black/40 backdrop-blur-sm text-white rounded-full p-2.5"
+          style={{ top: "max(3rem, calc(env(safe-area-inset-top) + 0.75rem))" }}
         >
           <Trash2 size={18} />
         </button>

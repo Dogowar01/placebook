@@ -48,7 +48,7 @@ export default function PassportPage() {
 
   if (locations.length === 0) {
     return (
-      <div className="h-screen flex flex-col">
+      <div className="flex flex-col" style={{ minHeight: "100dvh" }}>
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="text-center">
             <div className="text-5xl mb-4">🏆</div>
@@ -67,7 +67,7 @@ export default function PassportPage() {
   const progress = Math.min((unlocked.length / ACHIEVEMENTS.length) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="bg-gray-50" style={{ minHeight: "100dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
       {/* Header */}
       <div className="bg-gradient-to-br from-indigo-600 to-violet-600 px-5 pt-14 pb-8 text-white">
         <div className="flex items-center gap-3 mb-4">
