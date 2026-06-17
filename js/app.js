@@ -30,8 +30,13 @@ const App = (() => {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    // Start on map
+    // Render map first so Leaflet can initialise
     renderCurrent();
+
+    // Show onboarding on first launch
+    if (Onboarding.isNeeded()) {
+      Onboarding.start();
+    }
   }
 
   function switchTab(tab) {

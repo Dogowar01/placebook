@@ -137,15 +137,29 @@ const MapScreen = (() => {
     if (clickListener) { map.off('click', clickListener); clickListener = null; }
   }
 
+  function startHomePlacement(callback) {
+    document.getElementById('leaflet-map').classList.add('add-mode');
+    map.once('click', e => {
+      document.getElementById('leaflet-map').classList.remove('add-mode');
+      callback(e.latlng);
+    });
+  }
+
+  function invalidateSize() {
+    if (map) map.invalidateSize();
+  }
+
   function addMarker(loc) {
     if (!loc.lat || !loc.lng) return;
     const cat = Utils.category(loc.category);
+    const isHome = loc.isHome || loc.category === 'home';
+    const size = isHome ? 44 : 36;
     const icon = L.divIcon({
-      html: `<div class="pb-pin" style="background:${cat.color}"><span class="pb-pin-emoji">${cat.emoji}</span></div>`,
+      html: `<div class="pb-pin${isHome ? ' pb-pin-home' : ''}" style="background:${cat.color}"><span class="pb-pin-emoji">${cat.emoji}</span></div>`,
       className: '',
-      iconSize: [36, 36],
-      iconAnchor: [18, 36],
-      popupAnchor: [0, -38],
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size],
+      popupAnchor: [0, -(size + 2)],
     });
 
     const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(map);

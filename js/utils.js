@@ -1,16 +1,17 @@
 const Utils = (() => {
 
   const CATEGORIES = {
-    town:     { emoji: '🏘️', label: 'Town',         color: '#6366F1' },
-    city:     { emoji: '🏙️', label: 'City',         color: '#0EA5E9' },
-    restaurant:{ emoji: '🍽️', label: 'Restaurant',  color: '#F59E0B' },
-    campsite: { emoji: '⛺',  label: 'Campsite',    color: '#22C55E' },
-    hidden:   { emoji: '💎',  label: 'Hidden Gem',  color: '#8B5CF6' },
-    park:     { emoji: '🌲',  label: 'National Park',color: '#10B981' },
-    beach:    { emoji: '🏖️', label: 'Beach',        color: '#F97316' },
-    mountain: { emoji: '⛰️', label: 'Mountain',     color: '#6B7280' },
-    roadtrip: { emoji: '🚗',  label: 'Road Trip',   color: '#EF4444' },
-    attraction:{ emoji: '🎡', label: 'Attraction',  color: '#EC4899' },
+    home:     { emoji: '🏠',  label: 'Home',         color: '#EF4444' },
+    town:     { emoji: '🏘️', label: 'Town',          color: '#6366F1' },
+    city:     { emoji: '🏙️', label: 'City',          color: '#0EA5E9' },
+    restaurant:{ emoji: '🍽️', label: 'Restaurant',   color: '#F59E0B' },
+    campsite: { emoji: '⛺',  label: 'Campsite',     color: '#22C55E' },
+    hidden:   { emoji: '💎',  label: 'Hidden Gem',   color: '#8B5CF6' },
+    park:     { emoji: '🌲',  label: 'National Park', color: '#10B981' },
+    beach:    { emoji: '🏖️', label: 'Beach',         color: '#F97316' },
+    mountain: { emoji: '⛰️', label: 'Mountain',      color: '#6B7280' },
+    roadtrip: { emoji: '🚗',  label: 'Road Trip',    color: '#EF4444' },
+    attraction:{ emoji: '🎡', label: 'Attraction',   color: '#EC4899' },
   };
 
   const FOOD_CATEGORIES = ['restaurant','cafe','street food','bar','bakery','market','fine dining','takeaway','picnic','other'];
@@ -81,7 +82,9 @@ const Utils = (() => {
     return CATEGORIES[key] || { emoji: '📍', label: key, color: '#6B7280' };
   }
 
-  function allCategories() { return Object.entries(CATEGORIES).map(([k,v]) => ({key:k,...v})); }
+  function allCategories() {
+    return Object.entries(CATEGORIES).filter(([k]) => k !== 'home').map(([k,v]) => ({key:k,...v}));
+  }
 
   function buildListItems(arr, placeholder) {
     if (!arr || arr.length === 0) return `<p class="empty-list">${placeholder}</p>`;
