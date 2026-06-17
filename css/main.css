@@ -14,7 +14,7 @@
   --danger: #EF4444;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --nav-height: calc(58px + var(--safe-bottom));
+  --nav-height: 58px;
   --font: 'Inter', -apple-system, sans-serif;
   --font-serif: 'Lora', Georgia, serif;
 }
@@ -60,18 +60,15 @@ img { display: block; }
 
 /* ─── Bottom Nav ───────────────────────────────────────── */
 #bottom-nav {
-  /* Pinned to the true bottom of the screen. position:fixed + bottom:0
-     reaches the physical screen edge (under the home indicator) where a
-     normal flex child cannot, so there is never a strip of background
-     below it. The safe-area padding lifts the icons above the indicator
-     while the white background fills all the way down. */
+  /* Pinned flush to the bottom edge of the screen. No safe-area padding —
+     the icons sit right at the bottom (matching the other apps); the page
+     background is white so the home-indicator area blends in behind them. */
   position: fixed;
   left: 0; right: 0; bottom: 0;
   display: flex;
   background: #fff;
   border-top: 1px solid var(--border);
   z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .nav-tab {
