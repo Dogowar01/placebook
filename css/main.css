@@ -27,11 +27,6 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
-  /* Lock the body to the real screen height in standalone PWA mode so
-     there is never a gap below the nav (iOS 100dvh can over-report). */
-  position: fixed;
-  inset: 0;
-  width: 100%;
 }
 
 button { font-family: var(--font); cursor: pointer; border: none; background: none; }
@@ -42,9 +37,15 @@ img { display: block; }
 #app {
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
   position: relative;
+  /* Height fallback cascade (same approach as the other apps): the browser
+     uses the last value it understands. -webkit-fill-available fills the
+     real visible area on iOS Safari; 100dvh wins on browsers that support
+     it. This fills exactly to the bottom with no gap. */
+  height: 100%;
+  height: -webkit-fill-available;
+  height: 100dvh;
 }
 
 #screen-container {
@@ -1108,6 +1109,14 @@ img { display: block; }
   background: white; color: #4F46E5;
   border: none; border-radius: 16px;
   font-size: 16px; font-weight: 700;
+  font-family: var(--font); cursor: pointer;
+}
+.ob-btn-primary:disabled { opacity: 0.7; }
+.ob-btn-ghost {
+  width: 100%; padding: 14px;
+  background: transparent; color: rgba(255,255,255,0.85);
+  border: none; border-radius: 14px;
+  font-size: 15px; font-weight: 600;
   font-family: var(--font); cursor: pointer;
 }
 .ob-hint { font-size: 13px; color: rgba(255,255,255,0.5); text-align: center; }

@@ -20,9 +20,8 @@ const Onboarding = (() => {
       requestAnimationFrame(() => el.classList.add('ob-visible'));
     });
 
-    el.querySelector('#ob-btn-start').addEventListener('click', () => {
-      goToMapTap(el);
-    });
+    el.querySelector('#ob-use-location').addEventListener('click', () => useLocation(el));
+    el.querySelector('#ob-skip').addEventListener('click', () => { markDone(); dismiss(el); });
   }
 
   function welcomeHtml() {
@@ -40,30 +39,37 @@ const Onboarding = (() => {
           <div class="ob-feat"><span>🏆</span><span>Travel passport &amp; achievements</span></div>
         </div>
         <div class="ob-actions">
-          <button class="ob-btn-primary" id="ob-btn-start">Set My Home Base →</button>
-          <p class="ob-hint">Start by dropping a pin on where you live</p>
+          <button class="ob-btn-primary" id="ob-use-location">📍 Use My Location</button>
+          <button class="ob-btn-ghost" id="ob-skip">Skip for now</button>
         </div>
       </div>
     `;
   }
 
-  function goToMapTap(el) {
-    // Collapse to a banner so the map beneath is visible + tappable
-    el.classList.add('ob-banner-mode');
-    el.innerHTML = `
-      <div class="ob-tap-banner">
-        <span class="ob-tap-icon">🏠</span>
-        <span>Tap the map to place your home</span>
-      </div>
-    `;
+  function useLocation(el) {
+    const btn = el.querySelector('#ob-use-location');
+    btn.textContent = 'Finding you…';
+    btn.disabled = true;
 
-    MapScreen.startHomePlacement(latlng => {
-      showNameSheet(el, latlng);
-    });
+    if (!navigator.geolocation) {
+      // No geolocation: drop home at the current map centre so there's
+      // always a valid pin; the user can adjust later.
+      showNameSheet(el, MapScreen.getCenter());
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => showNameSheet(el, { lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {
+        // Denied or failed — fall back to the map centre rather than
+        // leaving the user stuck.
+        showNameSheet(el, MapScreen.getCenter());
+      },
+      { timeout: 9000, enableHighAccuracy: true }
+    );
   }
 
   function showNameSheet(el, latlng) {
-    el.classList.remove('ob-banner-mode');
     el.classList.add('ob-sheet-mode');
     el.innerHTML = `
       <div class="ob-sheet">
@@ -75,10 +81,10 @@ const Onboarding = (() => {
       </div>
     `;
 
-    const input = document.getElementById('ob-home-name');
+    const input = el.querySelector('#ob-home-name');
     setTimeout(() => { input.focus(); input.select(); }, 100);
 
-    document.getElementById('ob-btn-save').addEventListener('click', () => {
+    el.querySelector('#ob-btn-save').addEventListener('click', () => {
       const name = input.value.trim() || 'Home';
       const loc = Storage.addLocation({
         name,
@@ -105,15 +111,16 @@ const Onboarding = (() => {
     el.innerHTML = `
       <div class="ob-toast">
         <span class="ob-toast-icon">🏠</span>
-        <span>Home set! Now start adding places you've visited.</span>
+        <span>Home set! Now tap <strong>＋</strong> to add places you've visited.</span>
       </div>
     `;
+    setTimeout(() => dismiss(el), 2600);
+  }
 
-    setTimeout(() => {
-      el.style.transition = 'opacity 0.4s';
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 420);
-    }, 2200);
+  function dismiss(el) {
+    el.style.transition = 'opacity 0.4s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 420);
   }
 
   return { isNeeded, start, markDone };

@@ -41,8 +41,7 @@ const MapScreen = (() => {
       maxZoom: 18,
     }).addTo(map);
 
-    // Zoom control top-right
-    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    // No zoom control — pinch-to-zoom is enough on a phone.
 
     // Centre on user's current location
     if (navigator.geolocation) {
@@ -143,12 +142,10 @@ const MapScreen = (() => {
     if (clickListener) { map.off('click', clickListener); clickListener = null; }
   }
 
-  function startHomePlacement(callback) {
-    document.getElementById('leaflet-map').classList.add('add-mode');
-    map.once('click', e => {
-      document.getElementById('leaflet-map').classList.remove('add-mode');
-      callback(e.latlng);
-    });
+  function getCenter() {
+    if (!map) return { lat: 51.5, lng: -0.12 };
+    const c = map.getCenter();
+    return { lat: c.lat, lng: c.lng };
   }
 
   function invalidateSize() {
@@ -218,5 +215,5 @@ const MapScreen = (() => {
     }
   }
 
-  return { render, bind, addMarker, refreshMarker, removeMarker, flyTo, updateCount };
+  return { render, bind, addMarker, refreshMarker, removeMarker, flyTo, updateCount, getCenter, invalidateSize };
 })();
