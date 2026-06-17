@@ -1,7 +1,10 @@
 const LocationDetail = (() => {
 
   let currentId = null;
-  let lightboxListener = null;
+
+  // Deterministic rotation pattern so styles are consistent on re-open
+  const ROTATIONS = [-3, 2.5, -4, 1.5, -2, 3.5, -1, 4, -3.5, 2, -1.5, 3];
+  const STYLES    = ['polaroid', 'stamp', 'postcard'];
 
   function open(id) {
     const loc = Storage.getLocation(id);
@@ -12,15 +15,12 @@ const LocationDetail = (() => {
     panel.innerHTML = buildHtml(loc);
     panel.classList.remove('hidden');
 
-    // Force reflow then animate in
     panel.classList.add('sliding');
     requestAnimationFrame(() => {
       requestAnimationFrame(() => { panel.classList.add('visible'); });
     });
 
-    // Apply theme CSS vars to the panel
     Themes.applyToEl(panel, loc.theme || 'modern');
-
     bindEvents(loc);
   }
 
@@ -90,28 +90,18 @@ const LocationDetail = (() => {
           ${Utils.buildListItems(loc.gems)}
         </div>` : ''}
 
-        <!-- Photos -->
-        ${loc.photos && loc.photos.length > 0 ? `
-        <div class="d-card" style="background:var(--th-card-bg);border-color:var(--th-border)">
-          <div class="d-section-label" style="color:var(--th-text-muted)">Photos</div>
-          <div class="d-photo-grid">
-            ${loc.photos.map((p,i) => `
-              <div class="d-photo" style="border-color:var(--th-border)" data-photo-idx="${i}">
-                <img src="${p}" alt="photo ${i+1}">
-              </div>
-            `).join('')}
-          </div>
-        </div>` : ''}
+        <!-- Scrapbook Photos -->
+        ${loc.photos && loc.photos.length > 0 ? buildScrapbook(loc, t) : ''}
 
         <!-- Food log -->
         ${loc.food && loc.food.length ? `
         <div class="d-card" style="background:var(--th-card-bg);border-color:var(--th-border)">
           <div class="d-section-label" style="color:var(--th-text-muted)">Food Log 🍽️</div>
           ${loc.food.map(f => {
-            const catEmojis = {'restaurant':'🍽️','cafe':'☕','street food':'🌮','bar':'🍺','bakery':'🥐','market':'🛒','fine dining':'🥂','takeaway':'📦','picnic':'🧺','other':'🍴'};
+            const emo = {'restaurant':'🍽️','cafe':'☕','street food':'🌮','bar':'🍺','bakery':'🥐','market':'🛒','fine dining':'🥂','takeaway':'📦','picnic':'🧺','other':'🍴'};
             return `
             <div class="d-food-row" style="border-bottom-color:var(--th-border)">
-              <span style="font-size:20px">${catEmojis[f.category]||'🍴'}</span>
+              <span style="font-size:20px">${emo[f.category]||'🍴'}</span>
               <div style="flex:1">
                 <div class="d-food-name" style="color:var(--th-text)">${Utils.escHtml(f.name)}</div>
                 <div class="d-food-cat" style="color:var(--th-text-muted)">${f.category}${f.venue?' · '+Utils.escHtml(f.venue):''}</div>
@@ -150,24 +140,89 @@ const LocationDetail = (() => {
     `;
   }
 
+  // ── Scrapbook photo wall ───────────────────────────────
+  function buildScrapbook(loc, t) {
+    const items = loc.photos.map((src, i) => {
+      const style = STYLES[i % 3];
+      const rot   = ROTATIONS[i % ROTATIONS.length];
+      if (style === 'polaroid') return polaroidHtml(src, i, rot, loc.name);
+      if (style === 'stamp')    return stampHtml(src, i, rot, t.accent);
+      return postcardHtml(src, i, rot, loc.name, loc.country, t);
+    }).join('');
+
+    return `
+      <div class="scrapbook-section">
+        <div class="scrapbook-label">Memories</div>
+        <div class="scrapbook-wall" style="background:${t.cardBg === '#1F2937' ? '#111827' : '#FAF6F0'}">
+          ${items}
+        </div>
+      </div>
+    `;
+  }
+
+  function polaroidHtml(src, i, rot, name) {
+    return `
+      <div class="sb-polaroid" data-photo-idx="${i}" style="transform:rotate(${rot}deg)">
+        <img src="${src}" alt="photo">
+        <div class="pol-caption">${i === 0 ? Utils.escHtml(name) : '✨'}</div>
+      </div>
+    `;
+  }
+
+  function stampHtml(src, i, rot, accentColor) {
+    return `
+      <div class="sb-stamp-wrap" data-photo-idx="${i}" style="transform:rotate(${rot}deg)">
+        <div class="sb-stamp" style="--stamp-color:${accentColor}">
+          <div class="sb-stamp-inner">
+            <img src="${src}" alt="photo">
+            <div class="sb-stamp-label" style="color:${accentColor}">★ MEMORY ★</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function postcardHtml(src, i, rot, name, country, t) {
+    return `
+      <div class="sb-postcard" data-photo-idx="${i}" style="transform:rotate(${rot}deg)">
+        <img src="${src}" alt="photo" class="sb-postcard-photo">
+        <div class="sb-postcard-body" style="border-top:3px solid ${t.accent}">
+          <div class="sb-postcard-left">
+            <div class="sb-postcard-from">FROM</div>
+            <div class="sb-postcard-place" style="color:${t.accent}">${Utils.escHtml(name.slice(0,18))}</div>
+            <div class="sb-postcard-lines">
+              <div class="sb-postcard-line"></div>
+              <div class="sb-postcard-line"></div>
+            </div>
+          </div>
+          <div class="sb-postcard-right">
+            <div class="sb-postcard-stamp-box" style="background:${t.accent}20;border:1.5px solid ${t.accent}40">
+              <div style="font-size:9px;color:${t.accent};font-weight:700;text-align:center">${(country||'').slice(0,6).toUpperCase()}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Events ─────────────────────────────────────────────
   function bindEvents(loc) {
-    // Back
     document.getElementById('detail-back').addEventListener('click', close);
 
-    // More (options)
     document.getElementById('detail-more').addEventListener('click', () => {
-      if (confirm(`Options for ${loc.name}:\n\nPress OK to open on map, Cancel to stay.`)) {
+      if (confirm(`Options for ${loc.name}:\n\nPress OK to fly to on map, Cancel to stay.`)) {
         close();
         setTimeout(() => MapScreen.flyTo(loc), 350);
       }
     });
 
-    // Photo lightbox
-    document.querySelectorAll('.d-photo').forEach((el, i) => {
-      el.addEventListener('click', () => openLightbox(loc.photos, i));
+    // All scrapbook photo items open lightbox
+    document.querySelectorAll('[data-photo-idx]').forEach(el => {
+      el.addEventListener('click', () => {
+        openLightbox(loc.photos, +el.dataset.photoIdx);
+      });
     });
 
-    // Delete
     document.getElementById('detail-delete').addEventListener('click', () => {
       if (!confirm(`Delete "${loc.name}"? This cannot be undone.`)) return;
       Storage.deleteLocation(loc.id);
@@ -178,14 +233,26 @@ const LocationDetail = (() => {
 
   function openLightbox(photos, startIdx) {
     let idx = startIdx;
+
+    function show(i) {
+      lb.querySelector('.lb-img').src = photos[i];
+      lb.querySelector('.lb-counter').textContent = `${i + 1} / ${photos.length}`;
+    }
+
     const lb = document.createElement('div');
     lb.className = 'lightbox';
     lb.innerHTML = `
-      <button style="position:absolute;top:20px;right:20px;color:white;font-size:28px;background:none;border:none;cursor:pointer;z-index:2">✕</button>
-      <img src="${photos[idx]}" alt="photo">
+      <button class="lb-close">✕</button>
+      <button class="lb-prev" ${photos.length < 2 ? 'style="display:none"' : ''}>‹</button>
+      <img class="lb-img" src="${photos[idx]}" alt="photo">
+      <button class="lb-next" ${photos.length < 2 ? 'style="display:none"' : ''}>›</button>
+      <div class="lb-counter">${idx + 1} / ${photos.length}</div>
     `;
     document.body.appendChild(lb);
-    lb.querySelector('button').addEventListener('click', () => lb.remove());
+
+    lb.querySelector('.lb-close').addEventListener('click', () => lb.remove());
+    lb.querySelector('.lb-prev').addEventListener('click', () => { idx = (idx - 1 + photos.length) % photos.length; show(idx); });
+    lb.querySelector('.lb-next').addEventListener('click', () => { idx = (idx + 1) % photos.length; show(idx); });
     lb.addEventListener('click', e => { if (e.target === lb) lb.remove(); });
   }
 

@@ -44,6 +44,28 @@ const MapScreen = (() => {
     // Zoom control top-right
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
+    // Centre on user's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          map.setView([lat, lng], 12);
+          // Pulsing "you are here" dot
+          const youDot = L.circleMarker([lat, lng], {
+            radius: 8,
+            fillColor: '#4F46E5',
+            color: 'white',
+            weight: 3,
+            fillOpacity: 1,
+            className: 'you-here-dot',
+          }).addTo(map);
+          youDot.bindTooltip('📍 You are here', { permanent: false, direction: 'top' });
+        },
+        () => {}, // silently fall back to world view
+        { timeout: 8000, enableHighAccuracy: false }
+      );
+    }
+
     // Load existing locations
     const locations = Storage.getLocations();
     locations.forEach(loc => addMarker(loc));
