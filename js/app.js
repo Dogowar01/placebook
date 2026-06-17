@@ -9,8 +9,25 @@ const App = (() => {
 
   let currentTab = 'map';
 
+  // Lock the app to the real visible viewport height. iOS CSS viewport units
+  // (vh/dvh/-webkit-fill-available) are inconsistent across versions and
+  // between Safari-browser and home-screen modes, which leaves a strip of
+  // background below the nav. window.innerHeight is always the true visible
+  // height, so we drive the layout from it and update as the toolbar
+  // shows/hides or the device rotates.
+  function setAppHeight() {
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+    if (typeof MapScreen !== 'undefined') MapScreen.invalidateSize();
+  }
+
   function init() {
     Modal.init();
+
+    setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 120));
+    // iOS sometimes reports a stale height on first paint — re-measure shortly after.
+    setTimeout(setAppHeight, 250);
 
     // Tab navigation
     document.getElementById('bottom-nav').addEventListener('click', e => {

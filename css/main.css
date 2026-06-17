@@ -39,13 +39,11 @@ img { display: block; }
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  /* Height fallback cascade (same approach as the other apps): the browser
-     uses the last value it understands. -webkit-fill-available fills the
-     real visible area on iOS Safari; 100dvh wins on browsers that support
-     it. This fills exactly to the bottom with no gap. */
-  height: 100%;
-  height: -webkit-fill-available;
+  /* --app-height is set from JS (window.innerHeight) so the shell fills
+     the real visible area on iOS with no gap below the nav. The 100dvh
+     fallback covers the first paint before JS runs. */
   height: 100dvh;
+  height: var(--app-height, 100dvh);
 }
 
 #screen-container {
