@@ -1,8 +1,7 @@
-"use client";
-
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { Location } from "./types";
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Location } from './types';
 
 interface PlacebookStore {
   locations: Location[];
@@ -34,6 +33,9 @@ export const usePlacebookStore = create<PlacebookStore>()(
 
       getLocation: (id) => get().locations.find((l) => l.id === id),
     }),
-    { name: "placebook-data" }
+    {
+      name: 'placebook-data',
+      storage: createJSONStorage(() => AsyncStorage),
+    }
   )
 );
