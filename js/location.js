@@ -171,13 +171,9 @@ const LocationDetail = (() => {
 
   function stampHtml(src, i, rot, accentColor) {
     return `
-      <div class="sb-stamp-wrap" data-photo-idx="${i}" style="transform:rotate(${rot}deg)">
-        <div class="sb-stamp" style="--stamp-color:${accentColor}">
-          <div class="sb-stamp-inner">
-            <img src="${src}" alt="photo">
-            <div class="sb-stamp-label" style="color:${accentColor}">★ MEMORY ★</div>
-          </div>
-        </div>
+      <div class="sb-stamp-wrap" data-photo-idx="${i}" style="transform:rotate(${rot}deg);--stamp-color:${accentColor}">
+        <img class="sb-stamp-img" src="${src}" alt="photo">
+        <div class="sb-stamp-label">★ MEMORY ★</div>
       </div>
     `;
   }
@@ -196,8 +192,8 @@ const LocationDetail = (() => {
             </div>
           </div>
           <div class="sb-postcard-right">
-            <div class="sb-postcard-stamp-box" style="background:${t.accent}20;border:1.5px solid ${t.accent}40">
-              <div style="font-size:9px;color:${t.accent};font-weight:700;text-align:center">${(country||'').slice(0,6).toUpperCase()}</div>
+            <div class="sb-postcard-stamp-box" style="background:${t.accent}20;border:1.5px solid ${t.accent}40;color:${t.accent}">
+              ${(country||'').slice(0,6).toUpperCase()}
             </div>
           </div>
         </div>

@@ -260,7 +260,7 @@ img { display: block; }
 
 /* ─── Location Detail Panel ────────────────────────────── */
 .detail-panel {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 200;
   overflow-y: auto;
@@ -321,7 +321,7 @@ img { display: block; }
   -webkit-backdrop-filter: blur(8px);
 }
 
-.detail-content { padding: 12px 16px 40px; display: flex; flex-direction: column; gap: 12px; }
+.detail-content { padding: 12px 16px calc(48px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 12px; }
 
 /* Cards */
 .d-card {
@@ -387,44 +387,45 @@ img { display: block; }
 }
 
 /* ─── Scrapbook Photo Wall ──────────────────────────────── */
-.scrapbook-section { margin: 0 -16px; }
+.scrapbook-section { /* no bleed needed */ }
 
 .scrapbook-label {
   font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 1.2px;
   color: var(--text-muted);
-  padding: 0 16px 10px;
+  margin-bottom: 10px;
 }
 
 .scrapbook-wall {
-  padding: 20px 12px 28px;
+  padding: 28px 16px 32px;
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: 24px;
   align-items: center;
   justify-content: center;
-  background: #FAF6F0; /* warm parchment — overridden inline for dark themes */
+  background: #FAF6F0;
+  border-radius: 20px;
+  overflow: visible;
 }
 
-/* Polaroid */
+/* ── Polaroid ── */
 .sb-polaroid {
   background: #FFFEF7;
-  padding: 8px 8px 30px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.08);
+  padding: 8px 8px 32px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.08);
   cursor: pointer;
-  transition: transform 0.18s, box-shadow 0.18s;
   position: relative;
   flex-shrink: 0;
+  display: inline-block;
 }
-.sb-polaroid:active { box-shadow: 0 12px 32px rgba(0,0,0,0.28); }
 .sb-polaroid img {
   display: block;
-  width: 132px; height: 132px;
+  width: 128px; height: 128px;
   object-fit: cover;
 }
 .pol-caption {
   position: absolute;
-  bottom: 7px; left: 0; right: 0;
+  bottom: 8px; left: 0; right: 0;
   text-align: center;
   font-family: 'Lora', serif;
   font-style: italic;
@@ -432,61 +433,43 @@ img { display: block; }
   color: #888;
 }
 
-/* Stamp */
+/* ── Stamp (outline-based — reliable cross-browser) ── */
 .sb-stamp-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   cursor: pointer;
-  transition: transform 0.18s;
   flex-shrink: 0;
+  filter: drop-shadow(2px 5px 10px rgba(0,0,0,0.22));
 }
-.sb-stamp-wrap:active { filter: brightness(0.9); }
-
-.sb-stamp {
-  background: var(--stamp-color, #4F46E5);
-  padding: 8px;
-  box-shadow: 2px 4px 14px rgba(0,0,0,0.22);
-  /* Perforated edge using CSS mask — holes punched from all 4 sides */
-  -webkit-mask:
-    radial-gradient(circle 5px at 8px 0, #0000 98%, #000) -8px -5px / 16px 10px round,
-    radial-gradient(circle 5px at 8px 100%, #0000 98%, #000) -8px 5px / 16px 10px round,
-    radial-gradient(circle 5px at 0 8px, #0000 98%, #000) -5px -8px / 10px 16px round,
-    radial-gradient(circle 5px at 100% 8px, #0000 98%, #000) 5px -8px / 10px 16px round;
-  mask:
-    radial-gradient(circle 5px at 8px 0, #0000 98%, #000) -8px -5px / 16px 10px round,
-    radial-gradient(circle 5px at 8px 100%, #0000 98%, #000) -8px 5px / 16px 10px round,
-    radial-gradient(circle 5px at 0 8px, #0000 98%, #000) -5px -8px / 10px 16px round,
-    radial-gradient(circle 5px at 100% 8px, #0000 98%, #000) 5px -8px / 10px 16px round;
-}
-.sb-stamp-inner {
-  background: white;
-  padding: 5px;
-}
-.sb-stamp img {
+.sb-stamp-img {
   display: block;
-  width: 114px; height: 114px;
+  width: 120px; height: 120px;
   object-fit: cover;
+  outline: 8px solid var(--stamp-color, #4F46E5);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 13px #fff;
 }
 .sb-stamp-label {
-  text-align: center;
+  margin-top: 16px;
   font-size: 8px; font-weight: 700;
-  letter-spacing: 1.5px;
-  padding: 4px 0 1px;
+  letter-spacing: 2px;
   text-transform: uppercase;
+  color: var(--stamp-color, #4F46E5);
 }
 
-/* Postcard */
+/* ── Postcard ── */
 .sb-postcard {
   background: white;
   border: 1.5px solid #E5E7EB;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   cursor: pointer;
-  width: 200px;
+  width: 210px;
   overflow: hidden;
   flex-shrink: 0;
-  transition: transform 0.18s;
 }
-.sb-postcard:active { box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
 .sb-postcard-photo {
-  width: 100%; height: 108px;
+  width: 100%; height: 112px;
   object-fit: cover; display: block;
 }
 .sb-postcard-body {
@@ -495,7 +478,7 @@ img { display: block; }
   gap: 8px;
   padding: 8px 10px 10px;
 }
-.sb-postcard-left { flex: 1; }
+.sb-postcard-left { flex: 1; min-width: 0; }
 .sb-postcard-from {
   font-size: 7px; font-weight: 700;
   letter-spacing: 2px; color: #9CA3AF;
@@ -506,14 +489,15 @@ img { display: block; }
   margin-bottom: 6px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sb-postcard-lines { display: flex; flex-direction: column; gap: 4px; }
+.sb-postcard-lines { display: flex; flex-direction: column; gap: 5px; }
 .sb-postcard-line { height: 1px; background: #E5E7EB; }
 .sb-postcard-right { flex-shrink: 0; }
 .sb-postcard-stamp-box {
-  width: 32px; height: 38px;
-  border-radius: 3px;
+  width: 32px; height: 40px;
+  border-radius: 2px;
   display: flex; align-items: center; justify-content: center;
-  padding: 2px;
+  font-size: 7px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; text-align: center; line-height: 1.2;
 }
 
 /* Lightbox */
