@@ -38,12 +38,8 @@ img { display: block; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative;
-  /* Full-screen height INCLUDING the bottom safe area, so the nav can
-     reach the very bottom of the screen. 100vh is the universal fallback;
-     100dvh is preferred where supported. */
-  height: 100vh;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
 }
 
 #screen-container {
@@ -58,14 +54,18 @@ img { display: block; }
 
 /* ─── Bottom Nav ───────────────────────────────────────── */
 #bottom-nav {
+  /* Pinned to the true bottom of the screen. position:fixed + bottom:0
+     reaches the physical screen edge (under the home indicator) where a
+     normal flex child cannot, so there is never a strip of background
+     below it. The safe-area padding lifts the icons above the indicator
+     while the white background fills all the way down. */
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
   display: flex;
   background: #fff;
   border-top: 1px solid var(--border);
-  flex-shrink: 0;
   z-index: 100;
-  /* Nav sits flush at the very bottom of the screen (no safe-area gap).
-     #app is full-height (100dvh) so this reaches the screen edge. */
-  padding-bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .nav-tab {
@@ -172,7 +172,7 @@ img { display: block; }
 
 .map-fab {
   position: absolute;
-  bottom: 20px;
+  bottom: calc(var(--nav-height) + 16px);
   right: 20px;
   width: 56px;
   height: 56px;
@@ -331,7 +331,7 @@ img { display: block; }
   -webkit-backdrop-filter: blur(8px);
 }
 
-.detail-content { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+.detail-content { padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; }
 
 /* Cards */
 .d-card {
@@ -849,7 +849,7 @@ img { display: block; }
 .modal-footer {
   display: flex; gap: 10px;
   padding: 14px 20px;
-  padding-bottom: 18px;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -1060,7 +1060,8 @@ img { display: block; }
 /* Utilities */
 .hidden { display: none !important; }
 .ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pb-bottom { padding-bottom: 20px; }
+/* Clear the fixed bottom nav so scrollable content isn't hidden behind it. */
+.pb-bottom { padding-bottom: calc(var(--nav-height) + 20px); }
 
 /* ─── Home Pin ──────────────────────────────────────────── */
 .pb-pin-home {
