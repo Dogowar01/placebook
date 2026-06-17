@@ -19,11 +19,15 @@
   --font-serif: 'Lora', Georgia, serif;
 }
 
-html, body { height: 100%; overflow: hidden; }
+/* Background is WHITE to match the bottom nav. iOS fills the home-indicator
+   safe area with this page background, so making it match the nav means that
+   strip is invisible — the trick the other apps use (they set body bg to a
+   solid app colour). Scrollable screens restore the light-grey app bg below. */
+html, body { height: 100%; overflow: hidden; background: #FFFFFF; }
 
 body {
   font-family: var(--font);
-  background: var(--bg);
+  background: #FFFFFF;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
@@ -38,8 +42,10 @@ img { display: block; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: fixed;
-  inset: 0;
+  position: relative;
+  /* Plain height:100% chain (what the working apps use) — html/body are
+     also 100%. Avoids the flaky 100dvh/-webkit-fill-available units. */
+  height: 100%;
 }
 
 #screen-container {
@@ -92,6 +98,9 @@ img { display: block; }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  /* Light-grey app background restored here (body itself is white so the
+     bottom safe-area strip stays white to match the nav). */
+  background: var(--bg);
 }
 
 .screen-header {
