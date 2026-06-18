@@ -1372,6 +1372,10 @@ img { display: block; }
 .ob-toast-icon { font-size: 24px; flex-shrink: 0; }
 
 /* ─── Leaflet dark mode overrides ───────────────────────── */
+.leaflet-tile-pane {
+  filter: brightness(1.6) contrast(1.1);
+}
+
 .leaflet-control-zoom {
   border: 1px solid rgba(139,92,246,0.25) !important;
   border-radius: 12px !important;
