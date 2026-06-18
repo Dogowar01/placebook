@@ -241,6 +241,26 @@ img { display: block; }
   pointer-events: none;
 }
 
+/* Neon plum float glow */
+.pin-svg {
+  animation: pin-float 3s ease-in-out infinite;
+  animation-delay: var(--pin-delay, 0s);
+}
+@keyframes pin-float {
+  0%, 100% {
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.6))
+            drop-shadow(0 0 6px rgba(168,85,247,0.5))
+            drop-shadow(0 0 16px rgba(168,85,247,0.2));
+    transform: translateY(0);
+  }
+  50% {
+    filter: drop-shadow(0 7px 16px rgba(0,0,0,0.35))
+            drop-shadow(0 0 14px rgba(192,100,255,0.95))
+            drop-shadow(0 0 30px rgba(168,85,247,0.55));
+    transform: translateY(-5px);
+  }
+}
+
 /* MapLibre popup */
 .maplibregl-popup-content {
   background: var(--surface) !important;

@@ -329,9 +329,10 @@ const MapScreen = (() => {
 
     const el = document.createElement('div');
     el.className = `pb-pin${isHome ? ' pb-pin-home' : ''}`;
-    el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer`;
+    const animDelay = -(Math.random() * 3).toFixed(2);
+    el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer;--pin-delay:${animDelay}s`;
     el.innerHTML = `
-      <svg viewBox="0 0 36 50" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55)) drop-shadow(0 0 8px rgba(139,92,246,0.35))">
+      <svg viewBox="0 0 36 50" xmlns="http://www.w3.org/2000/svg" class="pin-svg" style="width:100%;height:100%;display:block">
         <path d="M18 1C8.6 1 1 8.6 1 18c0 13.1 15.4 29.8 16.3 30.8a.9.9 0 0 0 1.4 0C18.6 47.8 35 31.1 35 18 35 8.6 27.4 1 18 1z"
               fill="${cat.color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
       </svg>
