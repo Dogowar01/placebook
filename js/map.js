@@ -36,9 +36,7 @@ const MapScreen = (() => {
       zoomControl: false,
     });
 
-    // CARTO "Voyager" basemap — clean, modern, soft colours. Free, no API
-    // key. {r} gives crisp @2x tiles on retina phones.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20,
@@ -55,8 +53,8 @@ const MapScreen = (() => {
           // Pulsing "you are here" dot
           const youDot = L.circleMarker([lat, lng], {
             radius: 8,
-            fillColor: '#4F46E5',
-            color: 'white',
+            fillColor: '#A78BFA',
+            color: '#0D0F18',
             weight: 3,
             fillOpacity: 1,
             className: 'you-here-dot',
