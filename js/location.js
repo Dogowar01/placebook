@@ -254,16 +254,58 @@ const LocationDetail = (() => {
     `;
   }
 
+  // ── Action sheet ───────────────────────────────────────
+  function showActionSheet(loc) {
+    document.querySelector('.action-sheet')?.remove();
+
+    const sheet = document.createElement('div');
+    sheet.className = 'action-sheet';
+    sheet.innerHTML = `
+      <div class="action-sheet-backdrop"></div>
+      <div class="action-sheet-menu">
+        <div class="action-sheet-title">${Utils.escHtml(loc.name)}</div>
+        <button class="action-sheet-btn" id="as-edit">✏️ Edit Place</button>
+        <button class="action-sheet-btn" id="as-flyto">🗺 Fly to on Map</button>
+        <button class="action-sheet-btn action-sheet-btn-danger" id="as-delete">🗑 Delete Place</button>
+        <button class="action-sheet-btn action-sheet-btn-cancel" id="as-cancel">Cancel</button>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+
+    const dismiss = () => sheet.remove();
+    sheet.querySelector('.action-sheet-backdrop').addEventListener('click', dismiss);
+    sheet.querySelector('#as-cancel').addEventListener('click', dismiss);
+
+    sheet.querySelector('#as-edit').addEventListener('click', () => {
+      dismiss();
+      close();
+      setTimeout(() => {
+        Modal.openEdit(loc, updated => {
+          MapScreen.refreshMarker(updated);
+          setTimeout(() => LocationDetail.open(updated.id), 100);
+        });
+      }, 350);
+    });
+
+    sheet.querySelector('#as-flyto').addEventListener('click', () => {
+      dismiss();
+      close();
+      setTimeout(() => MapScreen.flyTo(loc), 350);
+    });
+
+    sheet.querySelector('#as-delete').addEventListener('click', () => {
+      dismiss();
+      if (!confirm(`Delete "${loc.name}"? This cannot be undone.`)) return;
+      Storage.deleteLocation(loc.id);
+      MapScreen.removeMarker(loc.id);
+      close();
+    });
+  }
+
   // ── Events ─────────────────────────────────────────────
   function bindEvents(loc) {
     document.getElementById('detail-back').addEventListener('click', close);
-
-    document.getElementById('detail-more').addEventListener('click', () => {
-      if (confirm(`Options for ${loc.name}:\n\nPress OK to fly to on map, Cancel to stay.`)) {
-        close();
-        setTimeout(() => MapScreen.flyTo(loc), 350);
-      }
-    });
+    document.getElementById('detail-more').addEventListener('click', () => showActionSheet(loc));
 
     // All scrapbook photo items open lightbox
     document.querySelectorAll('[data-photo-idx]').forEach(el => {

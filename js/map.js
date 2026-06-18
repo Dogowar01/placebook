@@ -325,13 +325,21 @@ const MapScreen = (() => {
     const isHome = loc.isHome || loc.category === 'home';
     const size = isHome ? 44 : 36;
 
+    const pinH = Math.round(size * 1.4);
+
     const el = document.createElement('div');
     el.className = `pb-pin${isHome ? ' pb-pin-home' : ''}`;
-    el.style.cssText = `background:${cat.color};width:${size}px;height:${size}px`;
-    el.innerHTML = `<span class="pb-pin-emoji">${cat.emoji}</span>`;
+    el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer`;
+    el.innerHTML = `
+      <svg viewBox="0 0 36 50" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55)) drop-shadow(0 0 8px rgba(139,92,246,0.35))">
+        <path d="M18 1C8.6 1 1 8.6 1 18c0 13.1 15.4 29.8 16.3 30.8a.9.9 0 0 0 1.4 0C18.6 47.8 35 31.1 35 18 35 8.6 27.4 1 18 1z"
+              fill="${cat.color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+      </svg>
+      <span class="pb-pin-emoji">${cat.emoji}</span>
+    `;
 
     const popup = new maplibregl.Popup({
-      offset: [0, -(size + 4)],
+      offset: [0, -(pinH + 4)],
       maxWidth: '240px',
       className: 'pb-popup',
       closeButton: false,

@@ -3,6 +3,8 @@ const Modal = (() => {
   let draft = {};
   let pendingLatLng = null;
   let onSaveCb = null;
+  let editMode = false;
+  let editId = null;
 
   const FOOD_CATS  = new Set(['restaurant', 'cafe', 'bar', 'takeaway']);
   const NATURE_CATS = new Set(['beach', 'mountain', 'park', 'viewpoint', 'campsite']);
@@ -28,7 +30,19 @@ const Modal = (() => {
   function open(latLng, onSave) {
     pendingLatLng = latLng;
     onSaveCb = onSave;
+    editMode = false;
+    editId = null;
     draft = { lat: latLng.lat, lng: latLng.lng, photos: [], food: [], highlights: [], gems: [], catData: {} };
+    step = 0;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    renderStep();
+  }
+
+  function openEdit(loc, onSave) {
+    onSaveCb = onSave;
+    editMode = true;
+    editId = loc.id;
+    draft = JSON.parse(JSON.stringify(loc));
     step = 0;
     document.getElementById('modal-overlay').classList.remove('hidden');
     renderStep();
@@ -38,6 +52,8 @@ const Modal = (() => {
     document.getElementById('modal-overlay').classList.add('hidden');
     draft = {};
     step = 0;
+    editMode = false;
+    editId = null;
   }
 
   function renderStep() {
@@ -675,7 +691,7 @@ const Modal = (() => {
 
     footer.innerHTML = `
       <button class="btn-secondary" id="btn-back-photos">← Back</button>
-      <button class="btn-primary" id="btn-save">✓ Save Place</button>
+      <button class="btn-primary" id="btn-save">${editMode ? '✓ Update Place' : '✓ Save Place'}</button>
     `;
     document.getElementById('btn-back-photos').addEventListener('click', prevStep);
     document.getElementById('btn-save').addEventListener('click', save);
@@ -700,14 +716,23 @@ const Modal = (() => {
 
   // ── Save ─────────────────────────────────────────────────
   function save() {
-    const loc = {
-      ...draft,
-      id: Utils.generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    Storage.addLocation(loc);
-    close();
-    if (typeof onSaveCb === 'function') onSaveCb(loc);
+    if (editMode && editId) {
+      const updates = { ...draft };
+      delete updates.id;
+      delete updates.createdAt;
+      const updated = Storage.updateLocation(editId, updates);
+      close();
+      if (typeof onSaveCb === 'function') onSaveCb(updated);
+    } else {
+      const loc = {
+        ...draft,
+        id: Utils.generateId(),
+        createdAt: new Date().toISOString(),
+      };
+      Storage.addLocation(loc);
+      close();
+      if (typeof onSaveCb === 'function') onSaveCb(loc);
+    }
   }
 
   // ── Init ─────────────────────────────────────────────────
@@ -718,5 +743,5 @@ const Modal = (() => {
     });
   }
 
-  return { open, close, init };
+  return { open, openEdit, close, init };
 })();
