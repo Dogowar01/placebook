@@ -19,24 +19,29 @@ const MapScreen = (() => {
       { id: 'background', type: 'background',
         paint: { 'background-color': '#0B0E17' } },
 
-      // Water — dark centre fading to neon blue glowing edges
+      // Water — near-black fill, soft neon blue gradient glow at edges
+      // No sharp line; all layers are heavily blurred so they blend into
+      // a smooth luminous halo that fades toward the dark centre.
       { id: 'water-fill', type: 'fill', source: 'ofm', 'source-layer': 'water',
-        paint: { 'fill-color': '#02060E' } },
-      // Outer glow (wide + heavy blur fades inward from the shore)
-      { id: 'water-glow-outer', type: 'line', source: 'ofm', 'source-layer': 'water',
-        paint: { 'line-color': '#0099FF', 'line-width': 8, 'line-blur': 16, 'line-opacity': 0.3 } },
-      // Mid glow
-      { id: 'water-glow-mid', type: 'line', source: 'ofm', 'source-layer': 'water',
-        paint: { 'line-color': '#00CCFF', 'line-width': 3, 'line-blur': 5, 'line-opacity': 0.55 } },
-      // Sharp neon shoreline
-      { id: 'water-edge', type: 'line', source: 'ofm', 'source-layer': 'water',
-        paint: { 'line-color': '#00E5FF', 'line-width': 0.8, 'line-opacity': 0.9 } },
-      // Waterways (rivers/streams)
+        paint: { 'fill-color': '#010509' } },
+      // Ambient bloom (very wide, faint — sets the overall colour cast)
+      { id: 'water-glow-1', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#0044AA', 'line-width': 28, 'line-blur': 40, 'line-opacity': 0.18 } },
+      // Wide soft gradient step
+      { id: 'water-glow-2', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#0077CC', 'line-width': 14, 'line-blur': 22, 'line-opacity': 0.22 } },
+      // Mid gradient step
+      { id: 'water-glow-3', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#00AAEE', 'line-width': 6,  'line-blur': 10, 'line-opacity': 0.3 } },
+      // Bright inner step — still blurred, no hard edge
+      { id: 'water-glow-4', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#00CCFF', 'line-width': 2,  'line-blur': 4,  'line-opacity': 0.45 } },
+      // Waterways (rivers/streams) — same soft glow, no hard edge
       { id: 'waterway', type: 'line', source: 'ofm', 'source-layer': 'waterway',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#00CCFF',
-                 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1, 14, 3],
-                 'line-blur': 2, 'line-opacity': 0.6 } },
+        paint: { 'line-color': '#00AAEE',
+                 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 14, 6],
+                 'line-blur': 6, 'line-opacity': 0.4 } },
 
       // Land
       { id: 'landcover', type: 'fill', source: 'ofm', 'source-layer': 'landcover',
