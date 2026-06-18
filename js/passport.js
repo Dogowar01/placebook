@@ -80,6 +80,7 @@ const Passport = (() => {
         <div class="passport-tab-bar">
           <button class="passport-tab active" data-ptab="stats">📊 Stats</button>
           <button class="passport-tab" data-ptab="achievements">🏆 Achievements</button>
+          <button class="passport-tab" data-ptab="backup">💾 Backup</button>
         </div>
         <div class="passport-content pb-bottom" id="passport-tab-content">
           ${renderStats(locations)}
@@ -147,6 +148,93 @@ const Passport = (() => {
           `).join('')}
         </div>
       </div>` : ''}
+      ${renderYearByYear(locations)}
+      ${renderTopMoods(locations)}
+    `;
+  }
+
+  function renderYearByYear(locations) {
+    if (!locations.length) return '';
+    const byYear = {};
+    locations.forEach(l => {
+      const y = Utils.getYear(l.date || l.createdAt);
+      byYear[y] = (byYear[y] || 0) + 1;
+    });
+    const years = Object.keys(byYear).sort((a,b) => b - a);
+    const maxCount = Math.max(1, ...Object.values(byYear));
+    return `
+      <div class="section-card">
+        <div class="section-card-header">Year by Year</div>
+        <div class="section-card-body">
+          ${years.map(y => {
+            const n = byYear[y];
+            const pct = Math.round((n / maxCount) * 100);
+            return `
+              <div class="cat-row">
+                <span class="cat-row-emoji" style="font-size:14px;width:38px;font-weight:700;color:var(--accent-2)">${y}</span>
+                <div class="cat-row-content">
+                  <div class="cat-row-label-row">
+                    <span class="cat-row-name">${n} place${n!==1?'s':''}</span>
+                    <span class="cat-row-count">${n}</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTopMoods(locations) {
+    const moodCounts = {};
+    locations.forEach(l => {
+      if (l.mood) moodCounts[l.mood] = (moodCounts[l.mood] || 0) + 1;
+    });
+    const moods = Object.entries(moodCounts).sort((a,b) => b[1]-a[1]).slice(0, 5);
+    if (!moods.length) return '';
+    const maxM = Math.max(1, ...moods.map(m => m[1]));
+    return `
+      <div class="section-card">
+        <div class="section-card-header">Top Moods</div>
+        <div class="section-card-body">
+          ${moods.map(([mood, n]) => {
+            const pct = Math.round((n / maxM) * 100);
+            return `
+              <div class="cat-row">
+                <span class="cat-row-emoji">${mood.split(' ')[0]}</span>
+                <div class="cat-row-content">
+                  <div class="cat-row-label-row">
+                    <span class="cat-row-name">${Utils.escHtml(mood)}</span>
+                    <span class="cat-row-count">${n}</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderBackup() {
+    return `
+      <div class="backup-card">
+        <div class="big-emoji" style="font-size:40px;margin-bottom:12px">💾</div>
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.5">Your data is stored locally on this device. Export regularly to keep a backup.</p>
+        <button class="backup-btn btn-primary" id="backup-export" style="width:100%;margin-bottom:12px">⬇ Export Backup</button>
+      </div>
+      <div class="backup-card" style="margin-top:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">📂 Import Backup</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.45">Select a previously exported <code>.json</code> file to restore your data. This will overwrite current data.</p>
+        <label class="backup-btn btn-secondary" id="backup-import-label" style="display:flex;align-items:center;justify-content:center;cursor:pointer;padding:13px 20px;border-radius:14px;font-size:14px;font-weight:600">
+          📁 Choose File
+          <input type="file" accept=".json" id="backup-import-input" style="display:none">
+        </label>
+        <div id="backup-import-status" style="margin-top:10px;font-size:13px;color:var(--text-muted)"></div>
+      </div>
     `;
   }
 
@@ -198,9 +286,38 @@ const Passport = (() => {
         const tab = btn.dataset.ptab;
         document.querySelectorAll('[data-ptab]').forEach(b => b.classList.toggle('active', b.dataset.ptab === tab));
         const locations = Storage.getLocations();
-        document.getElementById('passport-tab-content').innerHTML =
-          tab === 'stats' ? renderStats(locations) : renderAchievements(locations);
+        const content = document.getElementById('passport-tab-content');
+        if (tab === 'stats') content.innerHTML = renderStats(locations);
+        else if (tab === 'achievements') content.innerHTML = renderAchievements(locations);
+        else if (tab === 'backup') { content.innerHTML = renderBackup(); bindBackup(); }
       });
+    });
+  }
+
+  function bindBackup() {
+    const exportBtn = document.getElementById('backup-export');
+    if (exportBtn) exportBtn.addEventListener('click', () => {
+      try { Storage.exportBackup(); }
+      catch (e) { alert('Export failed: ' + e.message); }
+    });
+
+    const importInput = document.getElementById('backup-import-input');
+    if (importInput) importInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const result = Storage.importBackup(ev.target.result);
+          const status = document.getElementById('backup-import-status');
+          if (status) status.innerHTML = `<span style="color:#10B981">✓ Imported ${result.locations} places and ${result.trips} trips. Reloading…</span>`;
+          setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+          const status = document.getElementById('backup-import-status');
+          if (status) status.innerHTML = `<span style="color:#F87171">✗ Import failed: ${Utils.escHtml(err.message)}</span>`;
+        }
+      };
+      reader.readAsText(file);
     });
   }
 

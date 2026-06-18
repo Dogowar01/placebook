@@ -135,7 +135,10 @@ const LocationDetail = (() => {
           ${loc.cost ? `<div class="d-cost" style="border-top-color:var(--th-border);color:var(--th-text-muted)">💰 Total cost: <strong style="color:var(--th-text)">${Utils.escHtml(loc.cost)}</strong></div>` : ''}
         </div>
 
-        <!-- Delete -->
+        <!-- Share & Delete -->
+        <button id="detail-share" style="width:100%;padding:14px;background:rgba(139,92,246,0.08);border:1.5px solid rgba(139,92,246,0.25);border-radius:16px;color:#A78BFA;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">
+          📤 Share this place
+        </button>
         <button id="detail-delete" style="width:100%;padding:14px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:16px;color:#EF4444;font-size:14px;font-weight:600;cursor:pointer">
           🗑 Delete this place
         </button>
@@ -266,6 +269,7 @@ const LocationDetail = (() => {
         <div class="action-sheet-title">${Utils.escHtml(loc.name)}</div>
         <button class="action-sheet-btn" id="as-edit">✏️ Edit Place</button>
         <button class="action-sheet-btn" id="as-flyto">🗺 Fly to on Map</button>
+        <button class="action-sheet-btn" id="as-add-trip">🗂 Add to Trip</button>
         <button class="action-sheet-btn action-sheet-btn-danger" id="as-delete">🗑 Delete Place</button>
         <button class="action-sheet-btn action-sheet-btn-cancel" id="as-cancel">Cancel</button>
       </div>
@@ -293,6 +297,11 @@ const LocationDetail = (() => {
       setTimeout(() => MapScreen.flyTo(loc), 350);
     });
 
+    sheet.querySelector('#as-add-trip').addEventListener('click', () => {
+      dismiss();
+      if (typeof Trips !== 'undefined') Trips.addLocationToTrip(loc.id);
+    });
+
     sheet.querySelector('#as-delete').addEventListener('click', () => {
       dismiss();
       if (!confirm(`Delete "${loc.name}"? This cannot be undone.`)) return;
@@ -306,6 +315,11 @@ const LocationDetail = (() => {
   function bindEvents(loc) {
     document.getElementById('detail-back').addEventListener('click', close);
     document.getElementById('detail-more').addEventListener('click', () => showActionSheet(loc));
+
+    const shareBtn = document.getElementById('detail-share');
+    if (shareBtn) shareBtn.addEventListener('click', () => {
+      if (typeof ShareCard !== 'undefined') ShareCard.generate(loc);
+    });
 
     // All scrapbook photo items open lightbox
     document.querySelectorAll('[data-photo-idx]').forEach(el => {

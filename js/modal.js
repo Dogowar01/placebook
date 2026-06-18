@@ -85,7 +85,14 @@ const Modal = (() => {
   // ── Basics ───────────────────────────────────────────────
   function renderBasics(body, footer) {
     const cats = Utils.allCategories();
+    const isWishlist = !!draft.wishlist;
     body.innerHTML = `
+      <div class="field" style="margin-bottom:14px">
+        <div class="seg-toggle">
+          <button class="seg-btn${!isWishlist ? ' active' : ''}" id="seg-visited">✓ Visited</button>
+          <button class="seg-btn${isWishlist ? ' active' : ''}" id="seg-wishlist">📌 Wishlist</button>
+        </div>
+      </div>
       <div class="field">
         <label>Place Name *</label>
         <input id="f-name" type="text" placeholder="e.g. Santorini, The Blue Lagoon…" value="${Utils.escHtml(draft.name || '')}">
@@ -96,12 +103,12 @@ const Modal = (() => {
           <input id="f-country" type="text" placeholder="e.g. Greece" value="${Utils.escHtml(draft.country || '')}">
         </div>
         <div class="field">
-          <label>Visit Date</label>
+          <label id="date-label">${isWishlist ? 'Planning Date (optional)' : 'Visit Date'}</label>
           <input id="f-date" type="date" value="${draft.date || new Date().toISOString().slice(0,10)}">
         </div>
       </div>
       <div class="field">
-        <label>Category</label>
+        <label>Category<span id="cat-label-suffix" style="color:#9CA3AF;font-weight:400">${isWishlist ? ' (target)' : ''}</span></label>
         <div class="category-grid">
           ${cats.map(c => `
             <button class="cat-option${draft.category === c.key ? ' selected' : ''}" data-cat="${c.key}">
@@ -113,6 +120,21 @@ const Modal = (() => {
     `;
 
     footer.innerHTML = `<button class="btn-primary" id="btn-next-basics">Next <span>→</span></button>`;
+
+    document.getElementById('seg-visited').addEventListener('click', () => {
+      draft.wishlist = false;
+      document.getElementById('seg-visited').classList.add('active');
+      document.getElementById('seg-wishlist').classList.remove('active');
+      document.getElementById('date-label').textContent = 'Visit Date';
+      document.getElementById('cat-label-suffix').textContent = '';
+    });
+    document.getElementById('seg-wishlist').addEventListener('click', () => {
+      draft.wishlist = true;
+      document.getElementById('seg-wishlist').classList.add('active');
+      document.getElementById('seg-visited').classList.remove('active');
+      document.getElementById('date-label').textContent = 'Planning Date (optional)';
+      document.getElementById('cat-label-suffix').textContent = ' (target)';
+    });
 
     body.querySelectorAll('.cat-option').forEach(btn => {
       btn.addEventListener('click', () => {

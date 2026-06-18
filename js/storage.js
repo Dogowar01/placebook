@@ -2,6 +2,7 @@ const Storage = (() => {
   const KEYS = {
     locations: 'pb_locations',
     settings: 'pb_settings',
+    trips: 'pb_trips',
   };
 
   function getLocations() {
@@ -53,6 +54,73 @@ const Storage = (() => {
     localStorage.setItem(KEYS.settings, JSON.stringify(s));
   }
 
+  // ── Trips ────────────────────────────────────────────────
+  function getTrips() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.trips) || '[]');
+    } catch { return []; }
+  }
+
+  function saveTrips(trips) {
+    localStorage.setItem(KEYS.trips, JSON.stringify(trips));
+  }
+
+  function addTrip(trip) {
+    const trips = getTrips();
+    trip.id = trip.id || Utils.generateId();
+    trip.createdAt = trip.createdAt || new Date().toISOString();
+    trip.locationIds = trip.locationIds || [];
+    trips.unshift(trip);
+    saveTrips(trips);
+    return trip;
+  }
+
+  function updateTrip(id, updates) {
+    const trips = getTrips();
+    const i = trips.findIndex(t => t.id === id);
+    if (i === -1) return null;
+    trips[i] = { ...trips[i], ...updates, updatedAt: new Date().toISOString() };
+    saveTrips(trips);
+    return trips[i];
+  }
+
+  function deleteTrip(id) {
+    saveTrips(getTrips().filter(t => t.id !== id));
+  }
+
+  function getTrip(id) {
+    return getTrips().find(t => t.id === id) || null;
+  }
+
+  // ── Backup ───────────────────────────────────────────────
+  function exportBackup() {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const data = {
+      version: 1,
+      exportedAt: now.toISOString(),
+      locations: getLocations(),
+      trips: getTrips(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `placebook-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importBackup(jsonStr) {
+    const data = JSON.parse(jsonStr);
+    if (!data || data.version !== 1) throw new Error('Invalid backup format');
+    if (Array.isArray(data.locations)) saveLocations(data.locations);
+    if (Array.isArray(data.trips)) saveTrips(data.trips);
+    return { locations: (data.locations || []).length, trips: (data.trips || []).length };
+  }
+
   // Compress image to base64 data URL (max 800px, 0.7 quality)
   function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -79,5 +147,10 @@ const Storage = (() => {
     });
   }
 
-  return { getLocations, addLocation, updateLocation, deleteLocation, getLocation, getSettings, saveSetting, compressImage };
+  return {
+    getLocations, addLocation, updateLocation, deleteLocation, getLocation,
+    getSettings, saveSetting, compressImage,
+    getTrips, saveTrips, addTrip, updateTrip, deleteTrip, getTrip,
+    exportBackup, importBackup,
+  };
 })();

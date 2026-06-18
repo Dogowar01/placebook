@@ -1445,3 +1445,357 @@ img { display: block; }
 }
 .maplibregl-ctrl-attrib a { color: rgba(167,139,250,0.5) !important; }
 .maplibregl-ctrl-attrib-button { display: none !important; }
+
+/* ─── Map UI additions (v24) ────────────────────────────── */
+.map-topbar-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.map-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(13,15,24,0.88);
+  border: 1px solid rgba(139,92,246,0.25);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  font-size: 14px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.map-icon-btn:active { background: rgba(139,92,246,0.25); border-color: var(--border-accent); }
+
+.on-this-day-banner {
+  position: absolute;
+  top: calc(var(--safe-top) + 72px);
+  left: 16px;
+  right: 16px;
+  background: rgba(26,30,46,0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 4px solid var(--accent);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 50;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 20px rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-left-width: 4px;
+}
+
+.otd-emoji { font-size: 20px; flex-shrink: 0; }
+.otd-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+.otd-dismiss { color: var(--text-muted); font-size: 16px; padding: 2px 4px; flex-shrink: 0; }
+
+.add-mode-gps-btn {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Search overlay */
+.search-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(26,30,46,0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: calc(var(--safe-top) + 14px) 16px 14px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 0 8px 0 14px;
+}
+
+.search-box input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: var(--text);
+  padding: 11px 0;
+  font-family: var(--font);
+}
+
+.search-box input::placeholder { color: var(--text-xs); }
+
+.filter-chip {
+  padding: 6px 13px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.filter-chip.active {
+  background: var(--accent-light);
+  border-color: rgba(139,92,246,0.45);
+  color: var(--accent-2);
+  font-weight: 600;
+  box-shadow: 0 0 8px rgba(139,92,246,0.2);
+}
+
+.filter-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.search-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Wishlist pin style */
+.pb-pin-wishlist { opacity: 0.85; }
+.pb-pin-wishlist .pb-pin-emoji { opacity: 0.7; }
+
+/* ─── Trips screen (v24) ────────────────────────────────── */
+.trip-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.trip-card:active { box-shadow: 0 4px 20px rgba(139,92,246,0.15); }
+
+.trip-card-body { flex: 1; padding: 14px 12px; }
+.trip-card-emoji { font-size: 24px; margin-bottom: 4px; }
+.trip-card-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.trip-card-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trip-card-meta { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+.trip-card-photo {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  margin: 12px 12px 12px 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.trip-card-photo img { width: 100%; height: 100%; object-fit: cover; }
+.trip-card-no-photo {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  margin: 12px 12px 12px 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.trip-detail { display: flex; flex-direction: column; gap: 0; }
+
+.trip-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 4px 0;
+}
+
+.trip-back-btn {
+  width: 38px; height: 38px;
+  border-radius: 19px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.trip-more-btn {
+  width: 38px; height: 38px;
+  border-radius: 19px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.trip-detail-name { font-size: 18px; font-weight: 800; color: var(--text); }
+.trip-detail-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.trip-place-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.trip-place-row:last-child { border-bottom: none; }
+
+.trip-place-avatar {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.trip-place-info { flex: 1; min-width: 0; }
+.trip-place-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.trip-place-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.trip-place-remove {
+  color: var(--text-muted);
+  font-size: 16px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+.trip-place-remove:hover { color: var(--danger); }
+
+.trip-color-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.trip-color-swatch {
+  width: 28px; height: 28px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.trip-color-swatch.selected {
+  border-color: white;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+  transform: scale(1.15);
+}
+
+.tap-loc-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.tap-loc-row:active { background: var(--surface-2); }
+
+/* ─── Share overlay (v24) ───────────────────────────────── */
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+}
+
+.share-modal {
+  position: relative;
+  background: var(--surface-2);
+  border: 1px solid var(--border-accent);
+  border-radius: 24px;
+  padding: 20px;
+  max-width: 92vw;
+  width: 360px;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.7), 0 0 40px rgba(139,92,246,0.12);
+}
+
+.share-preview-img {
+  width: 100%;
+  border-radius: 16px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.share-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 0;
+}
+
+/* ─── Passport backup tab (v24) ─────────────────────────── */
+.backup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+}
+
+.backup-btn { font-family: var(--font); }
+
+/* ─── Segmented toggle (Visited / Wishlist in modal) ───── */
+.seg-toggle {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 3px;
+  gap: 3px;
+}
+
+.seg-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.seg-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px rgba(139,92,246,0.4);
+}

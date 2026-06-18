@@ -3,6 +3,7 @@ const App = (() => {
   const SCREENS = {
     map: MapScreen,
     timeline: Timeline,
+    trips: Trips,
     food: FoodJournal,
     passport: Passport,
   };

@@ -3,6 +3,7 @@ const MapScreen = (() => {
   let markers = {};  // { id: maplibregl.Marker }
   let addMode = false;
   let clickHandler = null;
+  let activeFilters = { query: '', categories: [], wishlist: null };
 
   // ── Dark neon map style ──────────────────────────────────
   const NEON_STYLE = {
@@ -195,6 +196,20 @@ const MapScreen = (() => {
     ],
   };
 
+  // ── GeoJSON helpers ──────────────────────────────────────
+  function locationsToGeoJson(locs) {
+    return {
+      type: 'FeatureCollection',
+      features: (locs || [])
+        .filter(l => l.lat && l.lng)
+        .map(l => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [l.lng, l.lat] },
+          properties: { id: l.id },
+        })),
+    };
+  }
+
   // ── Render (HTML skeleton) ───────────────────────────────
   function render() {
     return `
@@ -208,10 +223,42 @@ const MapScreen = (() => {
               <div class="map-logo-count" id="map-count">0 places</div>
             </div>
           </div>
+          <div class="map-topbar-actions">
+            <button class="map-icon-btn" id="map-search-btn" title="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </div>
         </div>
+
+        <!-- Search overlay -->
+        <div class="search-overlay hidden" id="search-overlay">
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search places…" autocomplete="off">
+            <button id="search-clear" class="map-icon-btn" style="flex-shrink:0;width:32px;height:32px">✕</button>
+          </div>
+          <div class="filter-chip-row" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="filter-chip active" data-wl="all">All</button>
+            <button class="filter-chip" data-wl="visited">✓ Visited</button>
+            <button class="filter-chip" data-wl="wishlist">📌 Wishlist</button>
+          </div>
+          <div class="search-cat-chips" id="search-cat-chips">
+            ${Utils.allCategories().map(c => `<button class="filter-chip" data-cat="${c.key}">${c.emoji} ${c.label}</button>`).join('')}
+          </div>
+        </div>
+
+        <!-- On This Day banner -->
+        <div class="on-this-day-banner hidden" id="on-this-day-banner">
+          <span class="otd-emoji">📅</span>
+          <span class="otd-text" id="otd-text"></span>
+          <button class="otd-dismiss" id="otd-dismiss">✕</button>
+        </div>
+
         <div class="add-mode-banner hidden" id="add-mode-banner">
           <span>Tap anywhere on the map to add a place</span>
-          <button id="cancel-add">✕</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button id="add-gps-btn" class="add-mode-gps-btn">📍 Use GPS</button>
+            <button id="cancel-add">✕</button>
+          </div>
         </div>
         <button class="map-fab" id="map-fab" title="Add Place">＋</button>
       </div>
@@ -222,6 +269,7 @@ const MapScreen = (() => {
   function bind() {
     if (map) { map.remove(); map = null; }
     markers = {};
+    activeFilters = { query: '', categories: [], wishlist: null };
 
     map = new maplibregl.Map({
       container: 'leaflet-map',
@@ -237,11 +285,82 @@ const MapScreen = (() => {
 
     map.on('load', () => {
       const locations = Storage.getLocations();
+
+      // ── Cluster source & layers ──────────────────────────
+      map.addSource('pb-cluster', {
+        type: 'geojson',
+        data: locationsToGeoJson(locations),
+        cluster: true,
+        clusterMaxZoom: 11,
+        clusterRadius: 65,
+      });
+
+      map.addLayer({
+        id: 'pb-cluster-glow',
+        type: 'circle',
+        source: 'pb-cluster',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': 'rgba(139,92,246,0.25)',
+          'circle-radius': ['interpolate', ['linear'], ['get', 'point_count'], 2, 28, 10, 44],
+          'circle-blur': 1,
+        },
+      });
+
+      map.addLayer({
+        id: 'pb-clusters',
+        type: 'circle',
+        source: 'pb-cluster',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#8B5CF6',
+          'circle-radius': ['interpolate', ['linear'], ['get', 'point_count'], 2, 18, 10, 30],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255,255,255,0.3)',
+        },
+      });
+
+      map.addLayer({
+        id: 'pb-cluster-count',
+        type: 'symbol',
+        source: 'pb-cluster',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['Open Sans Semibold'],
+          'text-size': 14,
+        },
+        paint: { 'text-color': '#fff' },
+      });
+
+      // Cluster click → expand
+      map.on('click', 'pb-clusters', e => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['pb-clusters'] });
+        if (!features.length) return;
+        const clusterId = features[0].properties.cluster_id;
+        map.getSource('pb-cluster').getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({ center: features[0].geometry.coordinates, zoom: zoom + 0.5 });
+        });
+      });
+
+      map.on('mouseenter', 'pb-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'pb-clusters', () => { map.getCanvas().style.cursor = ''; });
+
+      // Sync marker visibility on map moves
+      map.on('data', syncMarkerVisibility);
+      map.on('moveend', syncMarkerVisibility);
+      map.on('zoomend', syncMarkerVisibility);
+
+      // Add individual markers
       locations.forEach(loc => addMarker(loc));
       updateCount();
 
       const onboarding = (typeof Onboarding !== 'undefined') && Onboarding.isNeeded();
       if (locations.length === 0 && !onboarding) showEmptyState();
+
+      // On This Day check
+      checkOnThisDay();
     });
 
     // Geolocation — centre and show "you are here" pulse
@@ -260,6 +379,168 @@ const MapScreen = (() => {
 
     document.getElementById('map-fab').addEventListener('click', () => enterAddMode());
     document.getElementById('cancel-add').addEventListener('click', () => exitAddMode());
+
+    // GPS add button
+    document.getElementById('add-gps-btn').addEventListener('click', () => {
+      if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+      navigator.geolocation.getCurrentPosition(pos => {
+        exitAddMode();
+        Modal.open({ lat: pos.coords.latitude, lng: pos.coords.longitude }, loc => {
+          addMarker(loc);
+          refreshClusterSource();
+          updateCount();
+        });
+      }, () => alert('Could not get GPS location'), { timeout: 10000, enableHighAccuracy: true });
+    });
+
+    // Search toggle
+    document.getElementById('map-search-btn').addEventListener('click', () => {
+      const overlay = document.getElementById('search-overlay');
+      overlay.classList.toggle('hidden');
+      if (!overlay.classList.contains('hidden')) {
+        setTimeout(() => document.getElementById('search-input').focus(), 50);
+      }
+    });
+
+    // Search input
+    document.getElementById('search-input').addEventListener('input', e => {
+      activeFilters.query = e.target.value.toLowerCase();
+      applyFilters();
+    });
+
+    // Clear/close search
+    document.getElementById('search-clear').addEventListener('click', () => {
+      document.getElementById('search-input').value = '';
+      activeFilters.query = '';
+      activeFilters.categories = [];
+      activeFilters.wishlist = null;
+      document.getElementById('search-overlay').classList.add('hidden');
+      document.querySelectorAll('.filter-chip[data-wl]').forEach(c => c.classList.toggle('active', c.dataset.wl === 'all'));
+      document.querySelectorAll('.filter-chip[data-cat]').forEach(c => c.classList.remove('active'));
+      applyFilters();
+    });
+
+    // Wishlist filter chips
+    document.querySelectorAll('.filter-chip[data-wl]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip[data-wl]').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const wl = btn.dataset.wl;
+        activeFilters.wishlist = wl === 'all' ? null : wl === 'wishlist';
+        applyFilters();
+      });
+    });
+
+    // Category filter chips
+    document.querySelectorAll('.filter-chip[data-cat]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        const key = btn.dataset.cat;
+        const idx = activeFilters.categories.indexOf(key);
+        if (idx >= 0) activeFilters.categories.splice(idx, 1);
+        else activeFilters.categories.push(key);
+        applyFilters();
+      });
+    });
+  }
+
+  // ── Cluster source refresh ───────────────────────────────
+  function refreshClusterSource() {
+    if (!map || !map.getSource('pb-cluster')) return;
+    const locs = getFilteredLocations();
+    map.getSource('pb-cluster').setData(locationsToGeoJson(locs));
+  }
+
+  // ── Filter helpers ───────────────────────────────────────
+  function getFilteredLocations() {
+    let locs = Storage.getLocations();
+    const { query, categories, wishlist } = activeFilters;
+    if (query) {
+      locs = locs.filter(l =>
+        (l.name || '').toLowerCase().includes(query) ||
+        (l.country || '').toLowerCase().includes(query)
+      );
+    }
+    if (categories.length > 0) {
+      locs = locs.filter(l => categories.includes(l.category));
+    }
+    if (wishlist !== null) {
+      locs = locs.filter(l => !!l.wishlist === wishlist);
+    }
+    return locs;
+  }
+
+  function applyFilters() {
+    const filtered = getFilteredLocations();
+    const filteredIds = new Set(filtered.map(l => l.id));
+
+    if (map && map.getSource('pb-cluster')) {
+      map.getSource('pb-cluster').setData(locationsToGeoJson(filtered));
+    }
+
+    Object.entries(markers).forEach(([id, marker]) => {
+      marker.getElement().style.visibility = filteredIds.has(id) ? '' : 'hidden';
+    });
+
+    syncMarkerVisibility();
+  }
+
+  function syncMarkerVisibility() {
+    if (!map || !map.getSource('pb-cluster')) return;
+    if (!map.isSourceLoaded('pb-cluster')) return;
+
+    const filtered = getFilteredLocations();
+    const filteredIds = new Set(filtered.map(l => l.id));
+
+    let unclusteredIds = new Set();
+    try {
+      const features = map.querySourceFeatures('pb-cluster', {
+        filter: ['!', ['has', 'point_count']],
+      });
+      features.forEach(f => {
+        if (f.properties && f.properties.id) unclusteredIds.add(f.properties.id);
+      });
+    } catch (e) { return; }
+
+    Object.entries(markers).forEach(([id, marker]) => {
+      const inFilter = filteredIds.has(id);
+      const unclustered = unclusteredIds.has(id);
+      marker.getElement().style.visibility = (inFilter && unclustered) ? '' : 'hidden';
+    });
+  }
+
+  // ── On This Day ──────────────────────────────────────────
+  function checkOnThisDay() {
+    const today = new Date();
+    const todayMD = `${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const currentYear = today.getFullYear();
+
+    const locations = Storage.getLocations().filter(l => !l.wishlist && l.date);
+    const match = locations.find(l => {
+      const d = new Date(l.date);
+      const lMD = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return lMD === todayMD && d.getFullYear() < currentYear;
+    });
+
+    if (!match) return;
+
+    const yearsAgo = currentYear - new Date(match.date).getFullYear();
+    const banner = document.getElementById('on-this-day-banner');
+    const text = document.getElementById('otd-text');
+    if (!banner || !text) return;
+
+    text.textContent = `${yearsAgo} year${yearsAgo !== 1 ? 's' : ''} ago today — You visited ${match.name}${match.country ? ', ' + match.country : ''}`;
+    banner.classList.remove('hidden');
+
+    banner.addEventListener('click', e => {
+      if (e.target.id === 'otd-dismiss' || e.target.className === 'otd-dismiss') return;
+      LocationDetail.open(match.id);
+    });
+
+    document.getElementById('otd-dismiss').addEventListener('click', e => {
+      e.stopPropagation();
+      banner.classList.add('hidden');
+    });
   }
 
   // ── Add / exit add mode ──────────────────────────────────
@@ -273,6 +554,7 @@ const MapScreen = (() => {
       exitAddMode();
       Modal.open({ lat: e.lngLat.lat, lng: e.lngLat.lng }, loc => {
         addMarker(loc);
+        refreshClusterSource();
         updateCount();
       });
     };
@@ -324,17 +606,20 @@ const MapScreen = (() => {
     const cat = Utils.category(loc.category);
     const isHome = loc.isHome || loc.category === 'home';
     const size = isHome ? 44 : 36;
-
     const pinH = Math.round(size * 1.4);
 
     const el = document.createElement('div');
-    el.className = `pb-pin${isHome ? ' pb-pin-home' : ''}`;
+    el.className = `pb-pin${isHome ? ' pb-pin-home' : ''}${loc.wishlist ? ' pb-pin-wishlist' : ''}`;
     const animDelay = -(Math.random() * 3).toFixed(2);
     el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer;--pin-delay:${animDelay}s`;
+
+    const fillOpacity = loc.wishlist ? '0.35' : '1';
+    const strokeDash = loc.wishlist ? 'stroke-dasharray="5 3"' : '';
+
     el.innerHTML = `
-      <svg viewBox="0 0 36 50" xmlns="http://www.w3.org/2000/svg" class="pin-svg" style="width:100%;height:100%;display:block">
+      <svg viewBox="0 0 36 50" xmlns="http://www.w3.org/2000/svg" class="${loc.wishlist ? '' : 'pin-svg'}" style="width:100%;height:100%;display:block">
         <path d="M18 1C8.6 1 1 8.6 1 18c0 13.1 15.4 29.8 16.3 30.8a.9.9 0 0 0 1.4 0C18.6 47.8 35 31.1 35 18 35 8.6 27.4 1 18 1z"
-              fill="${cat.color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+              fill="${cat.color}" fill-opacity="${fillOpacity}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5" ${strokeDash}/>
       </svg>
       <span class="pb-pin-emoji">${cat.emoji}</span>
     `;
@@ -365,7 +650,7 @@ const MapScreen = (() => {
           ? `<img class="map-popup-img" src="${photo}" alt="${Utils.escHtml(loc.name)}">`
           : `<div class="map-popup-no-img" style="background:${cat.color}20">${cat.emoji}</div>`}
         <div class="map-popup-body">
-          <div class="map-popup-name">${Utils.escHtml(loc.name)}</div>
+          <div class="map-popup-name">${Utils.escHtml(loc.name)}${loc.wishlist ? ' <span style="font-size:11px;color:#A78BFA">📌 Wishlist</span>' : ''}</div>
           <div class="map-popup-sub">${Utils.escHtml(loc.country || '')} · ${cat.label} · ${dateStr}</div>
           ${ratingStr ? `<div class="map-popup-stars">${ratingStr}</div>` : ''}
           <a class="map-popup-link" href="#" data-open-loc="${loc.id}">Open Scrapbook →</a>
@@ -380,6 +665,7 @@ const MapScreen = (() => {
     } else {
       addMarker(loc);
     }
+    refreshClusterSource();
     updateCount();
   }
 
@@ -388,6 +674,7 @@ const MapScreen = (() => {
       markers[id].remove();
       delete markers[id];
     }
+    refreshClusterSource();
     updateCount();
   }
 
@@ -407,5 +694,70 @@ const MapScreen = (() => {
     if (map) map.resize();
   }
 
-  return { render, bind, addMarker, refreshMarker, removeMarker, flyTo, updateCount, getCenter, invalidateSize };
+  // ── Trip Route ───────────────────────────────────────────
+  function showTripRoute(tripId) {
+    if (!map) return;
+    const trip = Storage.getTrip(tripId);
+    if (!trip || !trip.locationIds || !trip.locationIds.length) return;
+
+    const locs = trip.locationIds
+      .map(id => Storage.getLocation(id))
+      .filter(Boolean)
+      .filter(l => l.lat && l.lng)
+      .sort((a, b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt));
+
+    if (locs.length < 2) return;
+
+    const color = trip.color || '#8B5CF6';
+    const coords = locs.map(l => [l.lng, l.lat]);
+
+    // Remove old route layers/source
+    ['trip-route-glow', 'trip-route-line'].forEach(id => {
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource('trip-route')) map.removeSource('trip-route');
+
+    map.addSource('trip-route', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+      },
+    });
+
+    map.addLayer({
+      id: 'trip-route-glow',
+      type: 'line',
+      source: 'trip-route',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': color,
+        'line-width': 12,
+        'line-blur': 8,
+        'line-opacity': 0.45,
+      },
+    });
+
+    map.addLayer({
+      id: 'trip-route-line',
+      type: 'line',
+      source: 'trip-route',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': color,
+        'line-width': 2.5,
+        'line-dasharray': [4, 3],
+        'line-opacity': 0.9,
+      },
+    });
+
+    const lngs = coords.map(c => c[0]);
+    const lats = coords.map(c => c[1]);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 80, duration: 1000 }
+    );
+  }
+
+  return { render, bind, addMarker, refreshMarker, removeMarker, flyTo, updateCount, getCenter, invalidateSize, showTripRoute, applyFilters };
 })();
