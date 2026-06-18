@@ -19,12 +19,24 @@ const MapScreen = (() => {
       { id: 'background', type: 'background',
         paint: { 'background-color': '#0B0E17' } },
 
-      // Water
+      // Water — dark centre fading to neon blue glowing edges
       { id: 'water-fill', type: 'fill', source: 'ofm', 'source-layer': 'water',
-        paint: { 'fill-color': '#05090F' } },
+        paint: { 'fill-color': '#02060E' } },
+      // Outer glow (wide + heavy blur fades inward from the shore)
+      { id: 'water-glow-outer', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#0099FF', 'line-width': 8, 'line-blur': 16, 'line-opacity': 0.3 } },
+      // Mid glow
+      { id: 'water-glow-mid', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#00CCFF', 'line-width': 3, 'line-blur': 5, 'line-opacity': 0.55 } },
+      // Sharp neon shoreline
+      { id: 'water-edge', type: 'line', source: 'ofm', 'source-layer': 'water',
+        paint: { 'line-color': '#00E5FF', 'line-width': 0.8, 'line-opacity': 0.9 } },
+      // Waterways (rivers/streams)
       { id: 'waterway', type: 'line', source: 'ofm', 'source-layer': 'waterway',
-        layout: { 'line-cap': 'round' },
-        paint: { 'line-color': '#05090F', 'line-width': 1 } },
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#00CCFF',
+                 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1, 14, 3],
+                 'line-blur': 2, 'line-opacity': 0.6 } },
 
       // Land
       { id: 'landcover', type: 'fill', source: 'ofm', 'source-layer': 'landcover',
