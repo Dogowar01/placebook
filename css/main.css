@@ -745,7 +745,7 @@ img { display: block; }
 
 .passport-progress-fill { height: 100%; background: white; border-radius: 3px; transition: width 0.6s ease; }
 
-.passport-content { padding: 16px; display: flex; flex-direction: column; gap: 16px; margin-top: -12px; }
+.passport-content { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
@@ -800,6 +800,68 @@ img { display: block; }
 .achievement.locked .achievement-name { color: var(--text-muted); font-weight: 500; }
 .achievement-desc { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 .achievement-check { color: var(--accent); font-weight: 700; font-size: 16px; margin-left: auto; }
+
+/* ─── Passport tabs ─────────────────────────────────────── */
+.passport-tab-bar {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.passport-tab {
+  flex: 1;
+  padding: 13px 8px;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: var(--font);
+}
+
+.passport-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.achieve-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 0;
+}
+
+.achieve-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+/* ─── Cat data chips in detail view ─────────────────────── */
+.cat-data-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat-data-chip {
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #F3F4F6;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
 
 /* ─── Modal ──────────────────────────────────────────────── */
 .modal-overlay {

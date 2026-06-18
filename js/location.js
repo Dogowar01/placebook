@@ -76,6 +76,9 @@ const LocationDetail = (() => {
           <div class="d-notes" style="color:var(--th-text);font-family:${t.fontFamily}">${Utils.escHtml(loc.notes)}</div>
         </div>` : ''}
 
+        <!-- Category-specific data -->
+        ${buildCatDataCard(loc, t)}
+
         <!-- Highlights -->
         ${loc.highlights && loc.highlights.length ? `
         <div class="d-card" style="background:var(--th-card-bg);border-color:var(--th-border)">
@@ -136,6 +139,49 @@ const LocationDetail = (() => {
         <button id="detail-delete" style="width:100%;padding:14px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:16px;color:#EF4444;font-size:14px;font-weight:600;cursor:pointer">
           🗑 Delete this place
         </button>
+      </div>
+    `;
+  }
+
+  // ── Category-specific data card ───────────────────────
+  function buildCatDataCard(loc, t) {
+    const cd = loc.catData;
+    if (!cd || Object.keys(cd).length === 0) return '';
+    const cat = loc.category;
+
+    const LABELS = {
+      beach: 'Beach Details 🏖️', mountain: 'Trail Details ⛰️',
+      campsite: 'Campsite Info ⛺', park: 'Park Details 🌲',
+      viewpoint: 'Viewpoint Info 🌅', hotel: 'Stay Details 🏨',
+    };
+    if (!LABELS[cat]) return '';
+
+    let chips = [];
+    if (cat === 'beach') {
+      chips = [cd.water, cd.bestSeason, ...(cd.facilities || [])];
+    } else if (cat === 'mountain') {
+      chips = [cd.difficulty, cd.elevation ? `⛰️ ${cd.elevation}` : null, cd.trail ? `🥾 ${cd.trail}` : null, cd.bestSeason];
+    } else if (cat === 'campsite') {
+      chips = [cd.campType, ...(cd.facilities || []), cd.bookingRequired ? '📅 Booking Required' : null];
+    } else if (cat === 'park') {
+      chips = [cd.bestSeason, cd.entry, cd.wildlife ? `🦌 ${cd.wildlife}` : null];
+    } else if (cat === 'viewpoint') {
+      chips = [cd.bestTime, cd.access, cd.view ? `👁 ${cd.view}` : null];
+    } else if (cat === 'hotel') {
+      chips = [cd.stayType, cd.pricePerNight ? `💰 ${cd.pricePerNight}/night` : null,
+               cd.nights ? `🌙 ${cd.nights} night${cd.nights != 1 ? 's' : ''}` : null,
+               ...(cd.amenities || []), cd.bookAgain || null];
+    }
+
+    chips = chips.filter(Boolean);
+    if (!chips.length) return '';
+
+    return `
+      <div class="d-card" style="background:var(--th-card-bg);border-color:var(--th-border)">
+        <div class="d-section-label" style="color:var(--th-text-muted)">${LABELS[cat]}</div>
+        <div class="cat-data-chips">
+          ${chips.map(c => `<span class="cat-data-chip">${Utils.escHtml(c)}</span>`).join('')}
+        </div>
       </div>
     `;
   }
