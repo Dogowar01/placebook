@@ -1,17 +1,26 @@
 const Utils = (() => {
 
   const CATEGORIES = {
-    home:     { emoji: '🏠',  label: 'Home',         color: '#EF4444' },
-    town:     { emoji: '🏘️', label: 'Town',          color: '#6366F1' },
-    city:     { emoji: '🏙️', label: 'City',          color: '#0EA5E9' },
-    restaurant:{ emoji: '🍽️', label: 'Restaurant',   color: '#F59E0B' },
-    campsite: { emoji: '⛺',  label: 'Campsite',     color: '#22C55E' },
-    hidden:   { emoji: '💎',  label: 'Hidden Gem',   color: '#8B5CF6' },
-    park:     { emoji: '🌲',  label: 'National Park', color: '#10B981' },
-    beach:    { emoji: '🏖️', label: 'Beach',         color: '#F97316' },
-    mountain: { emoji: '⛰️', label: 'Mountain',      color: '#6B7280' },
-    roadtrip: { emoji: '🚗',  label: 'Road Trip',    color: '#EF4444' },
-    attraction:{ emoji: '🎡', label: 'Attraction',   color: '#EC4899' },
+    home:      { emoji: '🏠', label: 'Home',          color: '#EF4444' },
+    town:      { emoji: '🏘️', label: 'Town',          color: '#6366F1' },
+    city:      { emoji: '🏙️', label: 'City',          color: '#0EA5E9' },
+    restaurant:{ emoji: '🍽️', label: 'Restaurant',    color: '#F59E0B' },
+    cafe:      { emoji: '☕', label: 'Café',          color: '#92400E' },
+    bar:       { emoji: '🍺', label: 'Bar / Pub',     color: '#CA8A04' },
+    takeaway:  { emoji: '🥡', label: 'Takeaway',      color: '#F43F5E' },
+    hotel:     { emoji: '🏨', label: 'Stay',          color: '#0D9488' },
+    campsite:  { emoji: '⛺', label: 'Campsite',      color: '#22C55E' },
+    park:      { emoji: '🌲', label: 'National Park', color: '#10B981' },
+    beach:     { emoji: '🏖️', label: 'Beach',         color: '#F97316' },
+    mountain:  { emoji: '⛰️', label: 'Mountain',      color: '#6B7280' },
+    viewpoint: { emoji: '🌅', label: 'Viewpoint',     color: '#D97706' },
+    photospot: { emoji: '📸', label: 'Photo Spot',    color: '#2563EB' },
+    attraction:{ emoji: '🎡', label: 'Attraction',    color: '#EC4899' },
+    museum:    { emoji: '🏛️', label: 'Museum',        color: '#9333EA' },
+    shop:      { emoji: '🛍️', label: 'Shopping',      color: '#DB2777' },
+    medical:   { emoji: '🏥', label: 'Medical',       color: '#0891B2' },
+    hidden:    { emoji: '💎', label: 'Hidden Gem',    color: '#8B5CF6' },
+    roadtrip:  { emoji: '🚗', label: 'Road Trip',     color: '#DC2626' },
   };
 
   const FOOD_CATEGORIES = ['restaurant','cafe','street food','bar','bakery','market','fine dining','takeaway','picnic','other'];
