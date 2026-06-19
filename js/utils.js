@@ -18,6 +18,7 @@ const Utils = (() => {
     attraction:{ emoji: '🎡', label: 'Attraction',    color: '#EC4899' },
     museum:    { emoji: '🏛️', label: 'Museum',        color: '#9333EA' },
     shop:      { emoji: '🛍️', label: 'Shopping',      color: '#DB2777' },
+    market:    { emoji: '🛒', label: 'Market',         color: '#84CC16' },
     medical:   { emoji: '🏥', label: 'Medical',       color: '#0891B2' },
     hidden:    { emoji: '💎', label: 'Hidden Gem',    color: '#8B5CF6' },
     roadtrip:  { emoji: '🚗', label: 'Road Trip',     color: '#DC2626' },

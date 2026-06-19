@@ -592,6 +592,11 @@ const MapScreen = (() => {
     if (el) el.textContent = `${locs.length} place${locs.length !== 1 ? 's' : ''}`;
   }
 
+  function hexToRgb(hex) {
+    const n = parseInt(hex.replace('#',''), 16);
+    return `${(n>>16)&255},${(n>>8)&255},${n&255}`;
+  }
+
   // ── Markers ──────────────────────────────────────────────
   function addMarker(loc) {
     if (!loc.lat || !loc.lng) return;
@@ -603,7 +608,8 @@ const MapScreen = (() => {
     const el = document.createElement('div');
     el.className = `pb-pin${isHome ? ' pb-pin-home' : ''}${loc.wishlist ? ' pb-pin-wishlist' : ''}`;
     const animDelay = -(Math.random() * 3).toFixed(2);
-    el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer;--pin-delay:${animDelay}s`;
+    const rgb = hexToRgb(cat.color);
+    el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer;--pin-delay:${animDelay}s;--pc:${rgb}`;
 
     const fillOpacity = loc.wishlist ? '0.35' : '1';
     const strokeDash = loc.wishlist ? 'stroke-dasharray="5 3"' : '';
