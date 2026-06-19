@@ -294,7 +294,8 @@ const LocationDetail = (() => {
     sheet.querySelector('#as-flyto').addEventListener('click', () => {
       dismiss();
       close();
-      setTimeout(() => MapScreen.flyTo(loc), 350);
+      App.switchTab('map');
+      setTimeout(() => MapScreen.flyTo(loc), 500);
     });
 
     sheet.querySelector('#as-add-trip').addEventListener('click', () => {
