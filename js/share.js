@@ -277,19 +277,6 @@ const ShareCard = (() => {
       // 3. Text section — starts below card
       let y = CARD_TOP + CARD_H + 50;
 
-      // Category badge pill
-      ctx.font = 'bold 30px Inter, sans-serif';
-      const badgeText = `${cat.emoji}  ${cat.label}`;
-      const bw = ctx.measureText(badgeText).width + 44;
-      const bh = 52;
-      ctx.beginPath();
-      roundRect(ctx, 60, y, bw, bh, 26);
-      ctx.fillStyle = cat.color + 'CC';
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(badgeText, 82, y + 35);
-      y += bh + 26;
-
       // Place name (max 2 lines)
       ctx.font = 'bold 70px Inter, sans-serif';
       ctx.fillStyle = '#F0F2FA';
