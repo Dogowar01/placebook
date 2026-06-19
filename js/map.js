@@ -609,7 +609,7 @@ const MapScreen = (() => {
     el.className = `pb-pin${isHome ? ' pb-pin-home' : ''}${loc.wishlist ? ' pb-pin-wishlist' : ''}`;
     const animDelay = -(Math.random() * 3).toFixed(2);
     const rgb = hexToRgb(cat.color);
-    el.style.cssText = `width:${size}px;height:${pinH}px;position:relative;cursor:pointer;--pin-delay:${animDelay}s;--pc:${rgb}`;
+    el.style.cssText = `width:${size}px;height:${pinH}px;cursor:pointer;--pin-delay:${animDelay}s;--pc:${rgb}`;
 
     const fillOpacity = loc.wishlist ? '0.35' : '1';
     const strokeDash = loc.wishlist ? 'stroke-dasharray="5 3"' : '';
