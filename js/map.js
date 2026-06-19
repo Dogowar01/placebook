@@ -5,6 +5,14 @@ const MapScreen = (() => {
   let clickHandler = null;
   let activeFilters = { query: '', categories: [], wishlist: null };
   let geocodeTimer = null;
+  let heatmapActive = false;
+
+  const WMO = {
+    0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',
+    51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',
+    71:'🌨',73:'🌨',75:'❄️',77:'🌨',80:'🌦',81:'🌧',82:'⛈',
+    85:'🌨',86:'❄️',95:'⛈',96:'⛈',99:'⛈',
+  };
 
   // ── Dark neon map style ──────────────────────────────────
   const NEON_STYLE = {
@@ -225,6 +233,7 @@ const MapScreen = (() => {
             </div>
           </div>
           <div class="map-topbar-actions">
+            <button class="map-icon-btn" id="map-heat-btn" title="Heatmap">🔥</button>
             <button class="map-icon-btn" id="map-search-btn" title="Search">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </button>
@@ -263,6 +272,10 @@ const MapScreen = (() => {
           </div>
         </div>
         <button class="map-fab" id="map-fab" title="Add Place">＋</button>
+        <div class="weather-widget hidden" id="weather-widget">
+          <span id="weather-icon"></span>
+          <span id="weather-temp"></span>
+        </div>
       </div>
     `;
   }
@@ -395,6 +408,43 @@ const MapScreen = (() => {
       }, () => alert('Could not get GPS location'), { timeout: 10000, enableHighAccuracy: true });
     });
 
+    // Heatmap toggle
+    document.getElementById('map-heat-btn').addEventListener('click', () => {
+      heatmapActive = !heatmapActive;
+      document.getElementById('map-heat-btn').classList.toggle('map-icon-btn-active', heatmapActive);
+      if (heatmapActive) {
+        if (!map.getSource('pb-heat')) {
+          map.addSource('pb-heat', { type: 'geojson', data: locationsToGeoJson(Storage.getLocations()) });
+        }
+        if (!map.getLayer('pb-heatmap')) {
+          map.addLayer({
+            id: 'pb-heatmap',
+            type: 'heatmap',
+            source: 'pb-heat',
+            paint: {
+              'heatmap-weight': 1,
+              'heatmap-intensity': ['interpolate',['linear'],['zoom'], 0,1, 15,3],
+              'heatmap-color': ['interpolate',['linear'],['heatmap-density'],
+                0,'rgba(0,0,0,0)',
+                0.2,'rgba(139,92,246,0.4)',
+                0.5,'rgba(167,139,250,0.75)',
+                0.8,'rgba(216,180,254,0.9)',
+                1,'rgba(255,255,255,1)',
+              ],
+              'heatmap-radius': ['interpolate',['linear'],['zoom'], 0,22, 15,70],
+              'heatmap-opacity': 0.88,
+            },
+          }, 'pb-cluster-glow');
+        }
+      } else {
+        if (map.getLayer('pb-heatmap')) map.removeLayer('pb-heatmap');
+        if (map.getSource('pb-heat'))   map.removeSource('pb-heat');
+      }
+    });
+
+    // Weather fetch
+    fetchWeather();
+
     // Search toggle
     document.getElementById('map-search-btn').addEventListener('click', () => {
       const overlay = document.getElementById('search-overlay');
@@ -454,6 +504,27 @@ const MapScreen = (() => {
         applyFilters();
       });
     });
+  }
+
+  // ── Weather ──────────────────────────────────────────────
+  function fetchWeather() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=auto`)
+        .then(r => r.json())
+        .then(d => {
+          const temp = Math.round(d.current.temperature_2m);
+          const code = d.current.weather_code;
+          const icon = WMO[code] || '🌡️';
+          const w = document.getElementById('weather-widget');
+          if (!w) return;
+          document.getElementById('weather-icon').textContent = icon;
+          document.getElementById('weather-temp').textContent = `${temp}°`;
+          w.classList.remove('hidden');
+        })
+        .catch(() => {});
+    }, () => {}, { timeout: 8000 });
   }
 
   // ── Search helpers ───────────────────────────────────────

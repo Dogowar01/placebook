@@ -106,6 +106,7 @@ const Passport = (() => {
     const topCountries = Object.entries(countryCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
 
     return `
+      <button class="wrapped-btn" id="wrapped-btn">🎁 Year Wrapped ${new Date().getFullYear()}</button>
       <div class="stats-grid">
         ${statCard('🌍', count, 'Places')}
         ${statCard('🗺️', countrySet.size, 'Countries')}
@@ -241,16 +242,14 @@ const Passport = (() => {
   function renderAchievements(locations) {
     return ACHIEVEMENT_GROUPS.map(group => {
       const unlockedItems = group.items.filter(a => a.check(locations));
-      const lockedItems   = group.items.filter(a => !a.check(locations));
       return `
         <div class="section-card">
           <div class="achieve-group-header">
             <span>${group.label}</span>
             <span class="achieve-count">${unlockedItems.length}/${group.items.length}</span>
           </div>
-          <div class="section-card-body">
-            ${unlockedItems.map(a => achievementHtml(a, true)).join('')}
-            ${lockedItems.map(a => achievementHtml(a, false)).join('')}
+          <div class="stamps-grid">
+            ${group.items.map(a => stampHtml(a, a.check(locations))).join('')}
           </div>
         </div>
       `;
@@ -280,14 +279,29 @@ const Passport = (() => {
     `;
   }
 
+  function stampHtml(a, isUnlocked) {
+    return `
+      <div class="stamp ${isUnlocked ? 'stamp-unlocked' : 'stamp-locked'}" title="${Utils.escHtml(a.desc)}">
+        <div class="stamp-inner">
+          <div class="stamp-emoji">${a.emoji}</div>
+          <div class="stamp-name">${a.name}</div>
+          ${isUnlocked ? '<div class="stamp-check">✓</div>' : '<div class="stamp-lock">🔒</div>'}
+        </div>
+      </div>
+    `;
+  }
+
   function bind() {
+    const wrappedBtn = document.getElementById('wrapped-btn');
+    if (wrappedBtn) wrappedBtn.addEventListener('click', () => ShareCard.generateWrapped(new Date().getFullYear()));
+
     document.querySelectorAll('[data-ptab]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tab = btn.dataset.ptab;
         document.querySelectorAll('[data-ptab]').forEach(b => b.classList.toggle('active', b.dataset.ptab === tab));
         const locations = Storage.getLocations();
         const content = document.getElementById('passport-tab-content');
-        if (tab === 'stats') content.innerHTML = renderStats(locations);
+        if (tab === 'stats') { content.innerHTML = renderStats(locations); const wb = document.getElementById('wrapped-btn'); if (wb) wb.addEventListener('click', () => ShareCard.generateWrapped(new Date().getFullYear())); }
         else if (tab === 'achievements') content.innerHTML = renderAchievements(locations);
         else if (tab === 'backup') { content.innerHTML = renderBackup(); bindBackup(); }
       });

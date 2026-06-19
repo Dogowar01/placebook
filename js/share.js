@@ -384,5 +384,116 @@ const ShareCard = (() => {
     }
   }
 
-  return { generate };
+  // ── Year Wrapped card ────────────────────────────────────
+  function generateWrapped(year) {
+    const all = Storage.getLocations();
+    const thisYear = all.filter(l => new Date(l.date || l.createdAt).getFullYear() === year);
+    const countries = new Set(thisYear.map(l => l.country).filter(Boolean));
+    const catCounts = {};
+    thisYear.forEach(l => { catCounts[l.category] = (catCounts[l.category] || 0) + 1; });
+    const topCatKey = Object.entries(catCounts).sort((a,b) => b[1]-a[1])[0]?.[0];
+    const topCat = topCatKey ? Utils.category(topCatKey) : null;
+    const topRated = [...thisYear].filter(l => l.rating).sort((a,b) => b.rating - a.rating)[0];
+    const totalPhotos = thisYear.reduce((s, l) => s + (l.photos||[]).length, 0);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+
+    // Background — deep violet mesh
+    const bg = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+    bg.addColorStop(0, '#0a0614');
+    bg.addColorStop(0.5, '#120824');
+    bg.addColorStop(1, '#0d0f18');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Glow orbs
+    [[SIZE*0.15, SIZE*0.18, '#8B5CF6', 0.3], [SIZE*0.85, SIZE*0.78, '#EC4899', 0.22], [SIZE*0.9, SIZE*0.1, '#06B6D4', 0.15]].forEach(([x,y,c,a]) => {
+      const rgb = hexToRgb(c);
+      const g = ctx.createRadialGradient(x,y,0,x,y,SIZE*0.45);
+      g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,SIZE,SIZE);
+    });
+
+    // Year — massive centred number at top
+    ctx.textAlign = 'center';
+    ctx.font = `bold 200px Inter, sans-serif`;
+    ctx.fillStyle = 'rgba(139,92,246,0.12)';
+    ctx.fillText(String(year), SIZE/2, 240);
+    ctx.font = `bold 120px Inter, sans-serif`;
+    ctx.fillStyle = '#A78BFA';
+    ctx.fillText(String(year), SIZE/2, 230);
+
+    // Subtitle
+    ctx.font = `500 36px Inter, sans-serif`;
+    ctx.fillStyle = 'rgba(240,242,250,0.5)';
+    ctx.fillText('Your Year in Places', SIZE/2, 290);
+
+    // Divider
+    ctx.beginPath(); ctx.moveTo(120, 320); ctx.lineTo(SIZE-120, 320);
+    ctx.strokeStyle = 'rgba(139,92,246,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Stat grid (2 columns)
+    const stats = [
+      { emoji: '📍', val: thisYear.length, label: 'Places' },
+      { emoji: '🌍', val: countries.size,  label: 'Countries' },
+      { emoji: '📸', val: totalPhotos,     label: 'Photos' },
+      { emoji: '⭐', val: topRated ? '⭐'.repeat(topRated.rating) : '—', label: 'Best Rating' },
+    ];
+
+    const startY = 370;
+    const colW = SIZE / 2;
+    ctx.textAlign = 'center';
+    stats.forEach(({ emoji, val, label }, i) => {
+      const cx = (i % 2 === 0 ? colW * 0.5 : colW * 1.5);
+      const cy = startY + Math.floor(i / 2) * 210;
+      // Card bg
+      ctx.save();
+      roundRect(ctx, cx - 180, cy - 10, 360, 170, 24);
+      ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(139,92,246,0.2)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.restore();
+      ctx.font = '50px serif'; ctx.fillStyle = '#fff'; ctx.fillText(emoji, cx, cy + 58);
+      ctx.font = `bold 64px Inter, sans-serif`; ctx.fillStyle = '#F0F2FA';
+      ctx.fillText(typeof val === 'number' ? val : val, cx, cy + 126);
+      ctx.font = `500 28px Inter, sans-serif`; ctx.fillStyle = 'rgba(240,242,250,0.45)';
+      ctx.fillText(label, cx, cy + 160);
+    });
+
+    // Top category highlight
+    let y = startY + 2 * 210 + 30;
+    if (topCat) {
+      ctx.textAlign = 'center';
+      ctx.font = '36px Inter, sans-serif'; ctx.fillStyle = 'rgba(240,242,250,0.5)';
+      ctx.fillText('Most visited', SIZE/2, y);
+      ctx.font = 'bold 56px Inter, sans-serif'; ctx.fillStyle = '#F0F2FA';
+      ctx.fillText(`${topCat.emoji}  ${topCat.label}`, SIZE/2, y + 66);
+      y += 100;
+    }
+
+    // Best rated place
+    if (topRated) {
+      ctx.font = '32px Inter, sans-serif'; ctx.fillStyle = 'rgba(240,242,250,0.45)';
+      ctx.fillText('Favourite place', SIZE/2, y + 20);
+      ctx.font = 'bold 48px Inter, sans-serif'; ctx.fillStyle = '#F0F2FA';
+      const name = topRated.name.length > 22 ? topRated.name.slice(0, 20) + '…' : topRated.name;
+      ctx.fillText(name, SIZE/2, y + 78);
+      y += 110;
+    }
+
+    // Divider
+    y += 10;
+    ctx.beginPath(); ctx.moveTo(120, y); ctx.lineTo(SIZE-120, y);
+    ctx.strokeStyle = 'rgba(139,92,246,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+    y += 36;
+
+    // Branding
+    ctx.font = 'bold 32px Inter, sans-serif'; ctx.fillStyle = '#A78BFA'; ctx.textAlign = 'center';
+    ctx.fillText('📍 Placebook', SIZE/2, y);
+
+    ctx.textAlign = 'left';
+    showShareOverlay(canvas);
+  }
+
+  return { generate, generateWrapped };
 })();

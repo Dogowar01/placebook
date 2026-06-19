@@ -72,6 +72,7 @@ const Trips = (() => {
         </div>
         <div style="display:flex;gap:10px;margin-bottom:16px">
           <button class="btn-primary" id="trip-add-place" style="flex:1">＋ Add Place</button>
+          <button class="btn-secondary" id="trip-replay-btn" style="flex:0;white-space:nowrap">▶ Replay</button>
           <button class="btn-secondary" id="trip-view-map" style="flex:0;white-space:nowrap">🗺 Map</button>
         </div>
         <div id="trip-places-list">
@@ -140,6 +141,9 @@ const Trips = (() => {
 
     const addPlaceBtn = document.getElementById('trip-add-place');
     if (addPlaceBtn) addPlaceBtn.addEventListener('click', () => showAddPlaceSheet(detailTripId));
+
+    const replayBtn = document.getElementById('trip-replay-btn');
+    if (replayBtn) replayBtn.addEventListener('click', () => showTripReplay(detailTripId));
 
     const viewMapBtn = document.getElementById('trip-view-map');
     if (viewMapBtn) viewMapBtn.addEventListener('click', () => {
@@ -376,6 +380,77 @@ const Trips = (() => {
         dismiss();
       });
     });
+  }
+
+  // ── Trip Replay Slideshow ────────────────────────────────
+  function showTripReplay(tripId) {
+    const trip = Storage.getTrip(tripId);
+    if (!trip) return;
+    const locs = (trip.locationIds || [])
+      .map(id => Storage.getLocation(id))
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt));
+    if (locs.length === 0) { alert('Add some places to this trip first.'); return; }
+
+    let idx = 0;
+    let autoTimer = null;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'replay-overlay';
+    document.body.appendChild(overlay);
+
+    function render() {
+      const loc = locs[idx];
+      const cat = Utils.category(loc.category);
+      const photo = loc.photos && loc.photos[0];
+      const dateStr = Utils.formatDate(loc.date || loc.createdAt);
+      overlay.innerHTML = `
+        <div class="replay-bg" ${photo ? `style="background-image:url('${photo}')"` : `style="background:${cat.color}22"`}></div>
+        <div class="replay-scrim"></div>
+        <div class="replay-top">
+          <div class="replay-dots">
+            ${locs.map((_, i) => `<div class="replay-dot${i === idx ? ' active' : i < idx ? ' done' : ''}"></div>`).join('')}
+          </div>
+          <button class="replay-close-btn" id="replay-close">✕</button>
+        </div>
+        ${!photo ? `<div class="replay-emoji-bg">${cat.emoji}</div>` : ''}
+        <div class="replay-bottom">
+          <div class="replay-cat">${cat.emoji} ${cat.label}</div>
+          <div class="replay-name">${Utils.escHtml(loc.name)}</div>
+          <div class="replay-sub">${Utils.escHtml(loc.country || '')}${loc.country && dateStr ? '  ·  ' : ''}${dateStr}</div>
+          ${loc.rating ? `<div class="replay-stars">${'⭐'.repeat(loc.rating)}</div>` : ''}
+        </div>
+        <div class="replay-nav">
+          <button class="replay-nav-btn" id="replay-prev" ${idx === 0 ? 'disabled' : ''}>‹</button>
+          <span class="replay-counter">${idx + 1} / ${locs.length}</span>
+          <button class="replay-nav-btn" id="replay-next" ${idx === locs.length - 1 ? 'disabled' : ''}>›</button>
+        </div>
+        <div class="replay-progress-bar"><div class="replay-progress-fill" id="replay-fill" style="animation-duration:3.5s"></div></div>
+      `;
+      overlay.querySelector('#replay-close').addEventListener('click', stop);
+      overlay.querySelector('#replay-prev').addEventListener('click', () => { clearAuto(); if (idx > 0) { idx--; render(); } });
+      overlay.querySelector('#replay-next').addEventListener('click', () => { clearAuto(); advance(); });
+    }
+
+    function advance() {
+      if (idx < locs.length - 1) { idx++; render(); startAuto(); }
+    }
+
+    function clearAuto() { clearTimeout(autoTimer); const f = document.getElementById('replay-fill'); if (f) f.style.animationName = 'none'; }
+
+    function startAuto() {
+      clearAuto();
+      if (idx < locs.length - 1) {
+        const f = document.getElementById('replay-fill');
+        if (f) { f.style.animationName = ''; void f.offsetWidth; f.classList.add('running'); }
+        autoTimer = setTimeout(advance, 3500);
+      }
+    }
+
+    function stop() { clearTimeout(autoTimer); overlay.remove(); }
+
+    render();
+    startAuto();
   }
 
   return { render, bind, addLocationToTrip };
