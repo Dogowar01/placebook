@@ -4,6 +4,7 @@ const MapScreen = (() => {
   let addMode = false;
   let clickHandler = null;
   let activeFilters = { query: '', categories: [], wishlist: null };
+  let geocodeTimer = null;
 
   // ── Dark neon map style ──────────────────────────────────
   const NEON_STYLE = {
@@ -233,10 +234,10 @@ const MapScreen = (() => {
         <!-- Search overlay -->
         <div class="search-overlay hidden" id="search-overlay">
           <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search places…" autocomplete="off">
+            <input type="text" id="search-input" placeholder="Search places or find address…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button id="search-clear" class="map-icon-btn" style="flex-shrink:0;width:32px;height:32px">✕</button>
           </div>
-          <div class="filter-chip-row" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <div class="filter-chip-row" style="margin-top:10px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px">
             <button class="filter-chip active" data-wl="all">All</button>
             <button class="filter-chip" data-wl="visited">✓ Visited</button>
             <button class="filter-chip" data-wl="wishlist">📌 Wishlist</button>
@@ -244,6 +245,7 @@ const MapScreen = (() => {
           <div class="search-cat-chips" id="search-cat-chips">
             ${Utils.allCategories().map(c => `<button class="filter-chip" data-cat="${c.key}">${c.emoji} ${c.label}</button>`).join('')}
           </div>
+          <div class="search-results-list hidden" id="search-results-list"></div>
         </div>
 
         <!-- On This Day banner -->
@@ -402,22 +404,32 @@ const MapScreen = (() => {
       }
     });
 
-    // Search input
+    // Search input — filter saved places + trigger geocoding
     document.getElementById('search-input').addEventListener('input', e => {
-      activeFilters.query = e.target.value.toLowerCase();
+      const q = e.target.value.trim();
+      activeFilters.query = q.toLowerCase();
       applyFilters();
+      updateSearchResults(q);
     });
 
     // Clear/close search
-    document.getElementById('search-clear').addEventListener('click', () => {
-      document.getElementById('search-input').value = '';
-      activeFilters.query = '';
-      activeFilters.categories = [];
-      activeFilters.wishlist = null;
-      document.getElementById('search-overlay').classList.add('hidden');
-      document.querySelectorAll('.filter-chip[data-wl]').forEach(c => c.classList.toggle('active', c.dataset.wl === 'all'));
-      document.querySelectorAll('.filter-chip[data-cat]').forEach(c => c.classList.remove('active'));
-      applyFilters();
+    document.getElementById('search-clear').addEventListener('click', closeSearch);
+
+    // Results list — click to fly to saved place or geocode result
+    document.getElementById('search-results-list').addEventListener('click', e => {
+      const item = e.target.closest('.search-result-item');
+      if (!item) return;
+      if (item.dataset.locId) {
+        const loc = Storage.getLocations().find(l => l.id === item.dataset.locId);
+        if (loc) {
+          closeSearch();
+          map.flyTo({ center: [loc.lng, loc.lat], zoom: Math.max(map.getZoom(), 14) });
+          setTimeout(() => { const m = markers[loc.id]; if (m) m.togglePopup(); }, 700);
+        }
+      } else if (item.dataset.lat) {
+        closeSearch();
+        map.flyTo({ center: [+item.dataset.lon, +item.dataset.lat], zoom: 14 });
+      }
     });
 
     // Wishlist filter chips
@@ -442,6 +454,98 @@ const MapScreen = (() => {
         applyFilters();
       });
     });
+  }
+
+  // ── Search helpers ───────────────────────────────────────
+  function closeSearch() {
+    clearTimeout(geocodeTimer);
+    document.getElementById('search-input').value = '';
+    activeFilters.query = '';
+    activeFilters.categories = [];
+    activeFilters.wishlist = null;
+    document.getElementById('search-overlay').classList.add('hidden');
+    const list = document.getElementById('search-results-list');
+    list.classList.add('hidden');
+    list.innerHTML = '';
+    document.querySelectorAll('.filter-chip[data-wl]').forEach(c => c.classList.toggle('active', c.dataset.wl === 'all'));
+    document.querySelectorAll('.filter-chip[data-cat]').forEach(c => c.classList.remove('active'));
+    applyFilters();
+  }
+
+  function updateSearchResults(q) {
+    const list = document.getElementById('search-results-list');
+    clearTimeout(geocodeTimer);
+    if (!q) {
+      list.classList.add('hidden');
+      list.innerHTML = '';
+      return;
+    }
+    const ql = q.toLowerCase();
+    const locs = Storage.getLocations().filter(l =>
+      (l.name || '').toLowerCase().includes(ql) ||
+      (l.country || '').toLowerCase().includes(ql)
+    ).slice(0, 5);
+
+    let html = locs.map(l => {
+      const cat = Utils.category(l.category);
+      return `<div class="search-result-item" data-loc-id="${l.id}">
+        <span class="search-result-icon" style="background:${cat.color}22">${cat.emoji}</span>
+        <div class="search-result-info">
+          <div class="search-result-name">${Utils.escHtml(l.name)}</div>
+          <div class="search-result-sub">${Utils.escHtml(l.country || '')}${l.country ? ' · ' : ''}${cat.label}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    html += `<div class="search-result-item search-result-addr" id="search-geocode-row" data-lat="" data-lon="">
+      <span class="search-result-icon">🗺️</span>
+      <div class="search-result-info">
+        <div class="search-result-name">Find "${Utils.escHtml(q)}" on map</div>
+        <div class="search-result-sub">Searching addresses…</div>
+      </div>
+    </div>`;
+
+    list.innerHTML = html;
+    list.classList.remove('hidden');
+
+    if (q.length >= 2) {
+      geocodeTimer = setTimeout(() => geocodeAndShowResults(q), 600);
+    }
+  }
+
+  function geocodeAndShowResults(q) {
+    const list = document.getElementById('search-results-list');
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=4&addressdetails=0`)
+      .then(r => r.json())
+      .then(results => {
+        const row = list.querySelector('#search-geocode-row');
+        if (!row) return;
+        if (results.length === 0) {
+          row.querySelector('.search-result-sub').textContent = 'No address results found';
+          row.dataset.lat = '';
+          return;
+        }
+        row.parentNode.removeChild(row);
+        results.forEach(r => {
+          const parts = r.display_name.split(',');
+          const name = parts[0].trim();
+          const sub = parts.slice(1, 4).join(',').trim();
+          const el = document.createElement('div');
+          el.className = 'search-result-item search-result-addr';
+          el.dataset.lat = r.lat;
+          el.dataset.lon = r.lon;
+          el.innerHTML = `<span class="search-result-icon">🗺️</span>
+            <div class="search-result-info">
+              <div class="search-result-name">${Utils.escHtml(name)}</div>
+              <div class="search-result-sub">${Utils.escHtml(sub)}</div>
+            </div>`;
+          list.appendChild(el);
+        });
+      })
+      .catch(() => {
+        const row = document.getElementById('search-geocode-row');
+        if (row) row.querySelector('.search-result-sub').textContent = 'Could not reach address search';
+      });
   }
 
   // ── Cluster source refresh ───────────────────────────────
