@@ -347,14 +347,12 @@ const MapScreen = (() => {
       map.on('mouseenter', 'pb-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'pb-clusters', () => { map.getCanvas().style.cursor = ''; });
 
-      // Sync marker visibility after tiles settle — 'idle' fires once all
-      // tile loads and animations finish; avoids the constant churn that
-      // 'data' causes during zoom, which made pins jump around.
-      map.on('idle', syncMarkerVisibility);
+      map.on('zoomend', syncMarkerVisibility);
       map.on('moveend', syncMarkerVisibility);
 
       // Add individual markers
       locations.forEach(loc => addMarker(loc));
+      syncMarkerVisibility();
       updateCount();
 
       const onboarding = (typeof Onboarding !== 'undefined') && Onboarding.isNeeded();
@@ -389,6 +387,7 @@ const MapScreen = (() => {
         Modal.open({ lat: pos.coords.latitude, lng: pos.coords.longitude }, loc => {
           addMarker(loc);
           refreshClusterSource();
+          syncMarkerVisibility();
           updateCount();
         });
       }, () => alert('Could not get GPS location'), { timeout: 10000, enableHighAccuracy: true });
@@ -486,27 +485,18 @@ const MapScreen = (() => {
     syncMarkerVisibility();
   }
 
+  // Above clusterMaxZoom (11) no clusters exist — show all filtered markers.
+  // Below it, clusters cover groups of pins — hide individual markers so they
+  // don't render on top of the cluster circles.
   function syncMarkerVisibility() {
-    if (!map || !map.getSource('pb-cluster')) return;
-    if (!map.isSourceLoaded('pb-cluster')) return;
-
+    if (!map) return;
     const filtered = getFilteredLocations();
     const filteredIds = new Set(filtered.map(l => l.id));
-
-    let unclusteredIds = new Set();
-    try {
-      const features = map.querySourceFeatures('pb-cluster', {
-        filter: ['!', ['has', 'point_count']],
-      });
-      features.forEach(f => {
-        if (f.properties && f.properties.id) unclusteredIds.add(f.properties.id);
-      });
-    } catch (e) { return; }
+    const aboveClusterZoom = map.getZoom() >= 11;
 
     Object.entries(markers).forEach(([id, marker]) => {
-      const inFilter = filteredIds.has(id);
-      const unclustered = unclusteredIds.has(id);
-      marker.getElement().style.visibility = (inFilter && unclustered) ? '' : 'hidden';
+      marker.getElement().style.visibility =
+        (filteredIds.has(id) && aboveClusterZoom) ? '' : 'hidden';
     });
   }
 
@@ -556,6 +546,7 @@ const MapScreen = (() => {
       Modal.open({ lat: e.lngLat.lat, lng: e.lngLat.lng }, loc => {
         addMarker(loc);
         refreshClusterSource();
+        syncMarkerVisibility();
         updateCount();
       });
     };
