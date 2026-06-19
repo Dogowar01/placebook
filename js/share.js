@@ -1,162 +1,91 @@
 const ShareCard = (() => {
 
-  function generate(loc) {
-    const SIZE = 1080;
-    const canvas = document.createElement('canvas');
-    canvas.width = SIZE;
-    canvas.height = SIZE;
-    const ctx = canvas.getContext('2d');
+  const SIZE = 1080;
 
-    const cat = Utils.category(loc.category);
-    const dateStr = Utils.formatDate(loc.date || loc.createdAt);
-
-    function drawCard() {
-      // Background gradient
-      const bg = ctx.createLinearGradient(0, 0, 0, SIZE);
-      bg.addColorStop(0, '#0D0F18');
-      bg.addColorStop(1, '#13161F');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, SIZE, SIZE);
-
-      // Radial purple glow
-      const glow = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE*0.6);
-      glow.addColorStop(0, 'rgba(139,92,246,0.15)');
-      glow.addColorStop(1, 'rgba(139,92,246,0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, SIZE, SIZE);
-
-      // If photo: draw in top 52%
-      const photoY = Math.round(SIZE * 0.52);
-
-      // Category badge
-      const badgePad = 22;
-      const badgeY = photoY + 54;
-
-      // Place name
-      ctx.font = 'bold 72px Inter, sans-serif';
-      ctx.fillStyle = '#F0F2FA';
-      const nameLines = wrapText(ctx, loc.name || 'Place', 60, 0, SIZE - 120, 80);
-      const nameY = badgeY + 60;
-
-      // Country · date
-      const subY = nameY + nameLines.length * 84 + 16;
-
-      // Rating
-      const ratingY = subY + 50;
-
-      // Divider
-      const dividerY = ratingY + (loc.rating ? 64 : 20);
-
-      // Branding
-      const brandY = SIZE - 60;
-
-      // Now draw in order:
-
-      // 1. Draw photo or emoji background
-      if (loc.photos && loc.photos[0]) {
-        const img = new Image();
-        img.onload = () => {
-          // Draw photo
-          const ph = photoY + 20;
-          const scale = Math.max(SIZE / img.width, ph / img.height);
-          const dw = img.width * scale;
-          const dh = img.height * scale;
-          const dx = (SIZE - dw) / 2;
-          const dy = 0;
-          ctx.drawImage(img, dx, dy, dw, dh);
-
-          // Fade-to-dark gradient over photo bottom
-          const fade = ctx.createLinearGradient(0, photoY - 200, 0, photoY + 40);
-          fade.addColorStop(0, 'rgba(13,15,24,0)');
-          fade.addColorStop(1, 'rgba(13,15,24,1)');
-          ctx.fillStyle = fade;
-          ctx.fillRect(0, photoY - 200, SIZE, 240);
-
-          finishCard();
-        };
-        img.onerror = finishCard;
-        img.src = loc.photos[0];
-      } else {
-        // Draw large category emoji centered in photo area
-        ctx.font = `${SIZE * 0.22}px serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(cat.emoji, SIZE/2, photoY * 0.55);
-        finishCard();
-      }
-
-      function finishCard() {
-        ctx.textAlign = 'left';
-
-        // Category badge pill
-        const badgeText = `${cat.emoji}  ${cat.label}`;
-        ctx.font = 'bold 32px Inter, sans-serif';
-        const bw = ctx.measureText(badgeText).width + 40;
-        const bh = 54;
-        const bx = 60;
-        const by = badgeY - bh + 10;
-        ctx.beginPath();
-        roundRect(ctx, bx, by, bw, bh, 27);
-        ctx.fillStyle = cat.color + 'CC';
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.fillText(badgeText, bx + 20, by + 37);
-
-        // Place name
-        ctx.font = 'bold 72px Inter, sans-serif';
-        ctx.fillStyle = '#F0F2FA';
-        let ny = nameY;
-        const wrappedName = wrapText(ctx, loc.name || '', 60, nameY, SIZE - 120, 80);
-        wrappedName.forEach(line => {
-          ctx.fillText(line.text, 60, line.y);
-        });
-        const lastNameLine = wrappedName[wrappedName.length - 1];
-        const actualSubY = lastNameLine ? lastNameLine.y + 60 : nameY + 80;
-
-        // Country · date
-        ctx.font = '38px Inter, sans-serif';
-        ctx.fillStyle = 'rgba(240,242,250,0.55)';
-        const sub = [loc.country, dateStr].filter(Boolean).join('  ·  ');
-        ctx.fillText(sub, 60, actualSubY);
-
-        // Star rating
-        let actualRatingY = actualSubY + 56;
-        if (loc.rating) {
-          ctx.font = '48px serif';
-          ctx.fillText('⭐'.repeat(loc.rating), 60, actualRatingY);
-          actualRatingY += 60;
-        }
-
-        // Purple divider
-        ctx.strokeStyle = 'rgba(139,92,246,0.45)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(60, actualRatingY + 20);
-        ctx.lineTo(SIZE - 60, actualRatingY + 20);
-        ctx.stroke();
-
-        // Branding
-        ctx.font = 'bold 36px Inter, sans-serif';
-        ctx.fillStyle = '#A78BFA';
-        ctx.fillText('📍 Placebook', 60, SIZE - 60);
-        ctx.font = '28px Inter, sans-serif';
-        ctx.fillStyle = 'rgba(240,242,250,0.35)';
-        ctx.textAlign = 'right';
-        ctx.fillText('Your personal travel scrapbook', SIZE - 60, SIZE - 60);
-        ctx.textAlign = 'left';
-
-        showShareOverlay(canvas);
-      }
-    }
-
-    drawCard();
+  // ── Colour helpers ───────────────────────────────────────
+  function hexToRgb(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
 
-  // ── Text wrap helper ─────────────────────────────────────
-  function wrapText(ctx, text, x, startY, maxWidth, lineHeight) {
-    const words = text.split(' ');
+  function darken(rgb, f) {
+    return rgb.map(c => Math.round(c * f));
+  }
+
+  // Sample the average colour of a region of an image via a small scratch canvas
+  function extractPalette(img) {
+    const W = 80, H = 80;
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    tctx.drawImage(img, 0, 0, W, H);
+    const d = tctx.getImageData(0, 0, W, H).data;
+
+    function avg(x0, y0, x1, y1) {
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let y = y0; y < y1; y += 2) {
+        for (let x = x0; x < x1; x += 2) {
+          const i = (y * W + x) * 4;
+          r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+        }
+      }
+      return [Math.round(r / n), Math.round(g / n), Math.round(b / n)];
+    }
+
+    return {
+      tl: avg(0,    0,    W / 2, H / 2),
+      tr: avg(W/2,  0,    W,     H / 2),
+      bl: avg(0,    H/2,  W / 2, H),
+      br: avg(W/2,  H/2,  W,     H),
+    };
+  }
+
+  function buildPalette(img, catColor) {
+    if (img) {
+      const { tl, tr, bl, br } = extractPalette(img);
+      return {
+        bg_tl: darken(tl, 0.17),
+        bg_tr: darken(tr, 0.17),
+        bg_bl: darken(bl, 0.17),
+        bg_br: darken(br, 0.17),
+        glow_a: tl,
+        glow_b: br,
+        accent:  tr,
+      };
+    }
+    // Fall back to category colour + a complementary shift
+    const base = hexToRgb(catColor);
+    const comp = [base[2], base[0], base[1]];
+    return {
+      bg_tl: darken(base, 0.15),
+      bg_tr: darken(comp, 0.15),
+      bg_bl: darken(comp, 0.12),
+      bg_br: darken(base, 0.12),
+      glow_a: base,
+      glow_b: comp,
+      accent:  comp,
+    };
+  }
+
+  // ── Canvas helpers ───────────────────────────────────────
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function wrapText(ctx, text, startY, maxWidth, lineHeight) {
+    const words = (text || '').split(' ');
     const lines = [];
-    let line = '';
-    let y = startY;
+    let line = '', y = startY;
     words.forEach(word => {
       const test = line ? line + ' ' + word : word;
       if (ctx.measureText(test).width > maxWidth && line) {
@@ -171,19 +100,257 @@ const ShareCard = (() => {
     return lines;
   }
 
-  // ── Rounded rect helper ──────────────────────────────────
-  function roundRect(ctx, x, y, w, h, r) {
+  function rgb(arr, a) {
+    return a != null
+      ? `rgba(${arr[0]},${arr[1]},${arr[2]},${a})`
+      : `rgb(${arr[0]},${arr[1]},${arr[2]})`;
+  }
+
+  function mixRgb(a, b) {
+    return a.map((v, i) => Math.round((v + b[i]) / 2));
+  }
+
+  // ── Background: mesh gradient + glow orbs ────────────────
+  function drawBackground(ctx, p) {
+    // Vertical pass
+    const gv = ctx.createLinearGradient(0, 0, 0, SIZE);
+    gv.addColorStop(0, rgb(mixRgb(p.bg_tl, p.bg_tr)));
+    gv.addColorStop(1, rgb(mixRgb(p.bg_bl, p.bg_br)));
+    ctx.fillStyle = gv;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Horizontal pass (blended on top)
+    const gh = ctx.createLinearGradient(0, 0, SIZE, 0);
+    gh.addColorStop(0, rgb(mixRgb(p.bg_tl, p.bg_bl), 0.55));
+    gh.addColorStop(1, rgb(mixRgb(p.bg_tr, p.bg_br), 0.55));
+    ctx.fillStyle = gh;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Darken overlay so text is always legible
+    ctx.fillStyle = 'rgba(0,0,0,0.38)';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Glow orb — top left, colour A
+    const g1 = ctx.createRadialGradient(SIZE * 0.18, SIZE * 0.16, 0, SIZE * 0.18, SIZE * 0.16, SIZE * 0.58);
+    g1.addColorStop(0, rgb(p.glow_a, 0.30));
+    g1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Glow orb — bottom right, colour B
+    const g2 = ctx.createRadialGradient(SIZE * 0.84, SIZE * 0.80, 0, SIZE * 0.84, SIZE * 0.80, SIZE * 0.52);
+    g2.addColorStop(0, rgb(p.glow_b, 0.24));
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Small accent orb — top right
+    const g3 = ctx.createRadialGradient(SIZE * 0.9, SIZE * 0.05, 0, SIZE * 0.9, SIZE * 0.05, SIZE * 0.28);
+    g3.addColorStop(0, rgb(p.accent, 0.18));
+    g3.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g3;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+  }
+
+  // ── 3-D floating photo card ──────────────────────────────
+  const CARD_W = 960;
+  const CARD_H = 510;
+  const CARD_R = 28;
+  const CARD_TOP = 52;
+  const TILT = -3 * Math.PI / 180;
+
+  function drawPhotoCard(ctx, img, cat, p) {
+    const cx = SIZE / 2;
+    const cy = CARD_TOP + CARD_H / 2;
+
+    // --- Shadow layer 1: deep ambient ---
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(TILT);
+    ctx.shadowColor = 'rgba(0,0,0,0.70)';
+    ctx.shadowBlur   = 90;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 55;
     ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
+    roundRect(ctx, -CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, CARD_R);
+    ctx.fillStyle = 'rgba(0,0,0,0.01)';
+    ctx.fill();
+    ctx.restore();
+
+    // --- Shadow layer 2: tight contact shadow ---
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(TILT);
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur   = 30;
+    ctx.shadowOffsetX = 8;
+    ctx.shadowOffsetY = 22;
+    ctx.beginPath();
+    roundRect(ctx, -CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, CARD_R);
+    ctx.fillStyle = 'rgba(0,0,0,0.01)';
+    ctx.fill();
+    ctx.restore();
+
+    // --- Photo / no-photo fill (clipped to card shape) ---
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(TILT);
+    ctx.beginPath();
+    roundRect(ctx, -CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, CARD_R);
+    ctx.clip();
+
+    if (img) {
+      const scale = Math.max(CARD_W / img.width, CARD_H / img.height);
+      const dw = img.width  * scale;
+      const dh = img.height * scale;
+      ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+    } else {
+      // Vivid gradient fill from palette when no photo
+      const fill = ctx.createLinearGradient(-CARD_W / 2, -CARD_H / 2, CARD_W / 2, CARD_H / 2);
+      fill.addColorStop(0, rgb(p.glow_a));
+      fill.addColorStop(1, rgb(p.glow_b));
+      ctx.fillStyle = fill;
+      ctx.fillRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H);
+
+      // Large emoji centred in card
+      ctx.font = `${CARD_H * 0.45}px serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur = 24;
+      ctx.fillText(cat.emoji, 0, CARD_H * 0.14);
+      ctx.shadowColor = 'transparent';
+      ctx.textAlign = 'left';
+    }
+
+    // Bottom-fade so text below isn't competed with photo content
+    const bfade = ctx.createLinearGradient(0, CARD_H / 2 - 140, 0, CARD_H / 2);
+    bfade.addColorStop(0, 'rgba(0,0,0,0)');
+    bfade.addColorStop(1, 'rgba(0,0,0,0.50)');
+    ctx.fillStyle = bfade;
+    ctx.fillRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H);
+
+    // Glossy glare strip (top-left → centre diagonal)
+    const glare = ctx.createLinearGradient(-CARD_W / 2, -CARD_H / 2, CARD_W * 0.38, CARD_H * 0.38);
+    glare.addColorStop(0,   'rgba(255,255,255,0.22)');
+    glare.addColorStop(0.45,'rgba(255,255,255,0.06)');
+    glare.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle = glare;
+    ctx.fillRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H);
+
+    ctx.restore();
+
+    // --- Card border: gradient highlight (bright top-left edge) ---
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(TILT);
+    ctx.beginPath();
+    roundRect(ctx, -CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, CARD_R);
+    const border = ctx.createLinearGradient(-CARD_W / 2, -CARD_H / 2, CARD_W / 2, CARD_H / 2);
+    border.addColorStop(0,   'rgba(255,255,255,0.55)');
+    border.addColorStop(0.35,'rgba(255,255,255,0.15)');
+    border.addColorStop(1,   'rgba(255,255,255,0.03)');
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Main generate ────────────────────────────────────────
+  function generate(loc) {
+    const canvas = document.createElement('canvas');
+    canvas.width  = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const cat     = Utils.category(loc.category);
+    const dateStr = Utils.formatDate(loc.date || loc.createdAt);
+
+    function render(img) {
+      const p = buildPalette(img, cat.color);
+
+      // 1. Background
+      drawBackground(ctx, p);
+
+      // 2. Photo card
+      drawPhotoCard(ctx, img, cat, p);
+
+      // 3. Text section — starts below card
+      let y = CARD_TOP + CARD_H + 50;
+
+      // Category badge pill
+      ctx.font = 'bold 30px Inter, sans-serif';
+      const badgeText = `${cat.emoji}  ${cat.label}`;
+      const bw = ctx.measureText(badgeText).width + 44;
+      const bh = 52;
+      ctx.beginPath();
+      roundRect(ctx, 60, y, bw, bh, 26);
+      ctx.fillStyle = cat.color + 'CC';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(badgeText, 82, y + 35);
+      y += bh + 26;
+
+      // Place name (max 2 lines)
+      ctx.font = 'bold 70px Inter, sans-serif';
+      ctx.fillStyle = '#F0F2FA';
+      const nameLines = wrapText(ctx, loc.name || '', y, SIZE - 120, 82).slice(0, 2);
+      nameLines.forEach(l => ctx.fillText(l.text, 60, l.y));
+      y = (nameLines[nameLines.length - 1]?.y ?? y) + 58;
+
+      // Country · date
+      const sub = [loc.country, dateStr].filter(Boolean).join('  ·  ');
+      if (sub) {
+        ctx.font = '34px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(240,242,250,0.55)';
+        ctx.fillText(sub, 60, y);
+        y += 50;
+      }
+
+      // Star rating
+      if (loc.rating) {
+        ctx.font = '44px serif';
+        ctx.fillText('⭐'.repeat(loc.rating), 60, y);
+        y += 54;
+      }
+
+      y += 16;
+
+      // Divider — gradient tinted from photo palette
+      const divGrad = ctx.createLinearGradient(60, y, SIZE - 60, y);
+      divGrad.addColorStop(0,   rgb(p.glow_a, 0.75));
+      divGrad.addColorStop(0.5, rgb(p.glow_b, 0.35));
+      divGrad.addColorStop(1,   'rgba(255,255,255,0.04)');
+      ctx.beginPath();
+      ctx.moveTo(60, y);
+      ctx.lineTo(SIZE - 60, y);
+      ctx.strokeStyle = divGrad;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      y += 32;
+
+      // Branding row
+      ctx.font = 'bold 32px Inter, sans-serif';
+      ctx.fillStyle = '#A78BFA';
+      ctx.textAlign = 'left';
+      ctx.fillText('📍 Placebook', 60, y);
+      ctx.font = '24px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(240,242,250,0.28)';
+      ctx.textAlign = 'right';
+      ctx.fillText('Your personal travel scrapbook', SIZE - 60, y);
+      ctx.textAlign = 'left';
+
+      showShareOverlay(canvas);
+    }
+
+    if (loc.photos && loc.photos[0]) {
+      const img = new Image();
+      img.onload  = () => render(img);
+      img.onerror = () => render(null);
+      img.src = loc.photos[0];
+    } else {
+      render(null);
+    }
   }
 
   // ── Share overlay ────────────────────────────────────────
@@ -207,11 +374,11 @@ const ShareCard = (() => {
     document.body.appendChild(overlay);
 
     overlay.querySelector('.share-backdrop').addEventListener('click', () => overlay.remove());
-    overlay.querySelector('#share-close').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#share-close').addEventListener('click',   () => overlay.remove());
 
     overlay.querySelector('#share-download').addEventListener('click', () => {
       const a = document.createElement('a');
-      a.href = imgSrc;
+      a.href     = imgSrc;
       a.download = 'placebook-share.jpg';
       document.body.appendChild(a);
       a.click();
