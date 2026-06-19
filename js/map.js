@@ -347,10 +347,11 @@ const MapScreen = (() => {
       map.on('mouseenter', 'pb-clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'pb-clusters', () => { map.getCanvas().style.cursor = ''; });
 
-      // Sync marker visibility on map moves
-      map.on('data', syncMarkerVisibility);
+      // Sync marker visibility after tiles settle — 'idle' fires once all
+      // tile loads and animations finish; avoids the constant churn that
+      // 'data' causes during zoom, which made pins jump around.
+      map.on('idle', syncMarkerVisibility);
       map.on('moveend', syncMarkerVisibility);
-      map.on('zoomend', syncMarkerVisibility);
 
       // Add individual markers
       locations.forEach(loc => addMarker(loc));

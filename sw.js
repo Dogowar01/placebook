@@ -1,5 +1,5 @@
 // Bump this string on every deploy that must invalidate caches.
-const CACHE = 'placebook-v24';
+const CACHE = 'placebook-v25';
 
 const PRECACHE = [
   '/placebook/',
