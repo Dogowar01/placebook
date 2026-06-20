@@ -203,7 +203,46 @@ const App = (() => {
     if (typeof screen.bind === 'function') screen.bind();
   }
 
-  return { init, renderCurrent, switchTab };
+  async function pasteAndAdd() {
+    let text = '';
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      alert('Tap Allow if prompted, then try again.');
+      return;
+    }
+    if (!text.trim()) {
+      alert('Nothing on the clipboard — copy some text from Facebook first.');
+      return;
+    }
+
+    const parsed = parseSharedEvent('', text.trim(), '');
+
+    let lat = 0, lng = 0;
+    if (parsed.address) {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(parsed.address)}&format=json&limit=1`);
+        const results = await r.json();
+        if (results.length) { lat = +results[0].lat; lng = +results[0].lon; }
+      } catch {}
+    }
+    if (!lat) { const c = MapScreen.getCenter(); lat = c.lat; lng = c.lng; }
+
+    MapScreen.flyTo({ lat, lng });
+
+    setTimeout(() => {
+      const prefill = { name: parsed.name, notes: parsed.notes };
+      if (parsed.date)     prefill.date     = parsed.date;
+      if (parsed.category) prefill.category = parsed.category;
+      Modal.open({ lat, lng }, loc => {
+        MapScreen.addMarker(loc);
+        MapScreen.refreshMarker(loc);
+        MapScreen.updateCount();
+      }, prefill);
+    }, 600);
+  }
+
+  return { init, renderCurrent, switchTab, pasteAndAdd };
 })();
 
 // Boot

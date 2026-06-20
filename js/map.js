@@ -233,6 +233,7 @@ const MapScreen = (() => {
             </div>
           </div>
           <div class="map-topbar-actions">
+            <button class="map-icon-btn" id="map-paste-btn" title="Paste & Add">📋</button>
             <button class="map-icon-btn" id="map-heat-btn" title="Heatmap">🔥</button>
             <button class="map-icon-btn" id="map-search-btn" title="Search">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -441,6 +442,9 @@ const MapScreen = (() => {
         if (map.getSource('pb-heat'))   map.removeSource('pb-heat');
       }
     });
+
+    // Paste & Add
+    document.getElementById('map-paste-btn').addEventListener('click', () => App.pasteAndAdd());
 
     // Weather fetch
     fetchWeather();
