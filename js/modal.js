@@ -27,12 +27,12 @@ const Modal = (() => {
     if (step > 0) { step--; renderStep(); }
   }
 
-  function open(latLng, onSave) {
+  function open(latLng, onSave, prefill = {}) {
     pendingLatLng = latLng;
     onSaveCb = onSave;
     editMode = false;
     editId = null;
-    draft = { lat: latLng.lat, lng: latLng.lng, photos: [], food: [], highlights: [], gems: [], catData: {} };
+    draft = { lat: latLng.lat, lng: latLng.lng, photoIds: [], food: [], highlights: [], gems: [], catData: {}, ...prefill };
     step = 0;
     document.getElementById('modal-overlay').classList.remove('hidden');
     renderStep();

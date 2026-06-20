@@ -8,6 +8,16 @@
   "orientation": "portrait",
   "background_color": "#4F46E5",
   "theme_color": "#4F46E5",
+  "share_target": {
+    "action": "/placebook/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "icons/icon-192.png",
