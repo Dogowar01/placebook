@@ -57,14 +57,38 @@ const App = (() => {
     ) || '';
   }
 
+  function guessCategory(text) {
+    const t = text.toLowerCase();
+    if (/\b(market|markets|fair|fete|festival|pop.?up|stall|stalls|artisan|craft fair|night market|farmers)\b/.test(t)) return 'market';
+    if (/\b(café|cafe|coffee|bakery|patisserie|brunch|espresso|barista)\b/.test(t)) return 'cafe';
+    if (/\b(restaurant|dining|bistro|brasserie|cuisine|diner|eatery|steakhouse|pizzeria|sushi|thai|italian|indian|chinese|japanese|mexican|greek|buffet)\b/.test(t)) return 'restaurant';
+    if (/\b(bar|pub|brewery|winery|cellar door|taproom|cocktail|tavern|hotel)\b/.test(t)) return 'bar';
+    if (/\b(beach|bay|cove|surf|sand|coast|shoreline|ocean|swimming)\b/.test(t)) return 'beach';
+    if (/\b(mountain|summit|trail|hike|hiking|trek|peak|climb|lookout|ridge|alpine)\b/.test(t)) return 'mountain';
+    if (/\b(national park|nature reserve|wildlife|bushwalk|forest|waterfall|gorge|canyon)\b/.test(t)) return 'park';
+    if (/\b(viewpoint|lookout|panorama|vista|scenic|view)\b/.test(t)) return 'viewpoint';
+    if (/\b(museum|gallery|art|exhibition|heritage|history|cultural|science centre)\b/.test(t)) return 'museum';
+    if (/\b(attraction|theme park|zoo|aquarium|amusement|tour|adventure)\b/.test(t)) return 'attraction';
+    if (/\b(camp|camping|caravan|glamping|motorhome)\b/.test(t)) return 'campsite';
+    if (/\b(shop|shopping|boutique|store|retail|outlet|mall)\b/.test(t)) return 'shop';
+    return '';
+  }
+
   function parseSharedEvent(title, text, url) {
     const combined = [title, text].filter(Boolean).join('\n');
     const lines    = combined.split('\n').map(l => l.trim()).filter(Boolean);
     const name     = (title || lines[0] || '').slice(0, 80);
-    const date     = extractEventDate(combined);
     const address  = extractEventAddress(combined, name);
     const notes    = (url ? `${combined}\n\n${url}` : combined).trim().slice(0, 600);
-    return { name, date, address, notes };
+    const category = guessCategory(combined);
+
+    // Only extract a date if the text looks like it has an actual event date
+    const hasDate = /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(combined)
+                 || /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}/i.test(combined)
+                 || /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/.test(combined);
+    const date = hasDate ? extractEventDate(combined) : '';
+
+    return { name, date, address, notes, category };
   }
 
   async function handleShareTarget() {
@@ -93,16 +117,14 @@ const App = (() => {
       if (!lat) { const c = MapScreen.getCenter(); lat = c.lat; lng = c.lng; }
       MapScreen.flyTo({ lat, lng });
       setTimeout(() => {
+        const prefill = { name: parsed.name, notes: parsed.notes };
+        if (parsed.date)     prefill.date     = parsed.date;
+        if (parsed.category) prefill.category = parsed.category;
         Modal.open({ lat, lng }, loc => {
           MapScreen.addMarker(loc);
           MapScreen.refreshMarker(loc);
           MapScreen.updateCount();
-        }, {
-          name:     parsed.name,
-          date:     parsed.date,
-          notes:    parsed.notes,
-          category: 'market',
-        });
+        }, prefill);
       }, 800);
     }, 1500);
   }
