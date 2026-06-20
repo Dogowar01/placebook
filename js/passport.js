@@ -47,8 +47,8 @@ const Passport = (() => {
     {
       id: 'memories', label: '📸 Memories',
       items: [
-        { id: 'shutter',      emoji: '📸', name: 'Shutterstock',     desc: 'Add 25 photos',                       check: l => l.reduce((s,x)=>s+(x.photos||[]).length,0) >= 25 },
-        { id: 'photostar',    emoji: '🌟', name: 'Photo Star',        desc: 'Add 50 photos',                       check: l => l.reduce((s,x)=>s+(x.photos||[]).length,0) >= 50 },
+        { id: 'shutter',      emoji: '📸', name: 'Shutterstock',     desc: 'Add 25 photos',                       check: l => l.reduce((s,x)=>s+(x.photoIds||x.photos||[]).length,0) >= 25 },
+        { id: 'photostar',    emoji: '🌟', name: 'Photo Star',        desc: 'Add 50 photos',                       check: l => l.reduce((s,x)=>s+(x.photoIds||x.photos||[]).length,0) >= 50 },
         { id: 'storyteller',  emoji: '✍️', name: 'Storyteller',       desc: 'Write notes on 10 places',            check: l => l.filter(x=>x.notes&&x.notes.length>20).length >= 10 },
         { id: 'diarykeepr',   emoji: '📖', name: 'Diary Keeper',      desc: 'Write notes on 25 places',            check: l => l.filter(x=>x.notes&&x.notes.length>20).length >= 25 },
         { id: 'returner',     emoji: '↩️', name: 'Always Return',     desc: 'Mark 5 places as "would return"',    check: l => l.filter(x=>x.wouldReturn).length >= 5 },
@@ -93,7 +93,7 @@ const Passport = (() => {
     const count = locations.length;
     const countrySet = new Set(locations.map(l => l.country).filter(Boolean));
     const totalMeals = locations.reduce((s,l) => s+(l.food||[]).length, 0);
-    const totalPhotos = locations.reduce((s,l) => s+(l.photos||[]).length, 0);
+    const totalPhotos = locations.reduce((s,l) => s+(l.photoIds||l.photos||[]).length, 0);
     const avgRating = count ? (locations.reduce((s,l) => s+(l.rating||0), 0)/count).toFixed(1) : '—';
 
     const byCat = {};
@@ -310,9 +310,18 @@ const Passport = (() => {
 
   function bindBackup() {
     const exportBtn = document.getElementById('backup-export');
-    if (exportBtn) exportBtn.addEventListener('click', () => {
-      try { Storage.exportBackup(); }
-      catch (e) { alert('Export failed: ' + e.message); }
+    if (exportBtn) exportBtn.addEventListener('click', async () => {
+      exportBtn.disabled = true;
+      exportBtn.textContent = '⏳ Exporting…';
+      try {
+        await Storage.exportBackup();
+        exportBtn.textContent = '✓ Done!';
+        setTimeout(() => { exportBtn.disabled = false; exportBtn.textContent = '⬇ Export Backup'; }, 2500);
+      } catch (e) {
+        alert('Export failed: ' + e.message);
+        exportBtn.disabled = false;
+        exportBtn.textContent = '⬇ Export Backup';
+      }
     });
 
     const importInput = document.getElementById('backup-import-input');
@@ -320,14 +329,13 @@ const Passport = (() => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = ev => {
+      reader.onload = async ev => {
+        const status = document.getElementById('backup-import-status');
         try {
-          const result = Storage.importBackup(ev.target.result);
-          const status = document.getElementById('backup-import-status');
-          if (status) status.innerHTML = `<span style="color:#10B981">✓ Imported ${result.locations} places and ${result.trips} trips. Reloading…</span>`;
-          setTimeout(() => window.location.reload(), 1200);
+          const result = await Storage.importBackup(ev.target.result);
+          if (status) status.innerHTML = `<span style="color:#10B981">✓ Imported ${result.locations} places, ${result.trips} trips, ${result.photos} photos. Reloading…</span>`;
+          setTimeout(() => window.location.reload(), 1500);
         } catch (err) {
-          const status = document.getElementById('backup-import-status');
           if (status) status.innerHTML = `<span style="color:#F87171">✗ Import failed: ${Utils.escHtml(err.message)}</span>`;
         }
       };

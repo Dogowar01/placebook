@@ -79,7 +79,8 @@ const Modal = (() => {
       'Stay Info':  renderStayInfo,
       'Photos':     renderPhotos,
     };
-    renderers[stepName](body, footer);
+    const p = renderers[stepName](body, footer);
+    if (p instanceof Promise) p.catch(err => console.error('[modal]', err));
   }
 
   // ── Basics ───────────────────────────────────────────────
@@ -669,13 +670,20 @@ const Modal = (() => {
   }
 
   // ── Photos ───────────────────────────────────────────────
-  function renderPhotos(body, footer) {
-    if (!draft.photos) draft.photos = [];
+  async function renderPhotos(body, footer) {
+    if (!draft.photoIds) draft.photoIds = [];
+    if (!draft._photoUrls) draft._photoUrls = {};
+
+    // Pre-load existing photos from IDB for display
+    if (draft.photoIds.length) {
+      const urls = await PhotoDB.getMany(draft.photoIds);
+      draft.photoIds.forEach((id, i) => { if (urls[i]) draft._photoUrls[id] = urls[i]; });
+    }
 
     body.innerHTML = `
-      <p class="hint">Add photos to bring this place to life. Stored locally on your device.</p>
+      <p class="hint">Add photos to bring this place to life. Stored on your device.</p>
       <div class="photo-grid" id="photo-grid">
-        ${draft.photos.map((p,i) => photoThumb(p,i)).join('')}
+        ${draft.photoIds.map((id, i) => photoThumb(draft._photoUrls[id] || '', i, id)).join('')}
         <div class="photo-add-btn" id="photo-add-btn">
           <span class="cam-icon">📷</span>
           <span>Add Photos</span>
@@ -698,15 +706,17 @@ const Modal = (() => {
     document.getElementById('photo-input').addEventListener('change', async e => {
       const files = Array.from(e.target.files);
       for (const f of files) {
-        if (draft.photos.length >= 12) break;
-        const data = await Storage.compressImage(f);
-        draft.photos.push(data);
+        if (draft.photoIds.length >= 12) break;
+        const dataUrl = await Storage.compressImage(f);
+        const id = await PhotoDB.putNew(dataUrl);
+        draft.photoIds.push(id);
+        draft._photoUrls[id] = dataUrl;
         const grid   = document.getElementById('photo-grid');
         const addBtn = document.getElementById('photo-add-btn');
         const wrapper = document.createElement('div');
-        wrapper.innerHTML = photoThumb(data, draft.photos.length - 1);
+        wrapper.innerHTML = photoThumb(dataUrl, draft.photoIds.length - 1, id);
         grid.insertBefore(wrapper.firstElementChild, addBtn);
-        bindPhotoThumb(draft.photos.length - 1);
+        bindPhotoThumb(draft.photoIds.length - 1, id);
       }
       e.target.value = '';
     });
@@ -719,38 +729,39 @@ const Modal = (() => {
     document.getElementById('btn-save').addEventListener('click', save);
   }
 
-  function photoThumb(src, i) {
-    return `<div class="photo-thumb"><img src="${src}" alt="photo"><button class="photo-remove" data-idx="${i}">✕</button></div>`;
+  function photoThumb(src, i, id = '') {
+    return `<div class="photo-thumb"><img src="${src || ''}" alt="photo"><button class="photo-remove" data-idx="${i}" data-photo-id="${Utils.escHtml(id)}">✕</button></div>`;
   }
 
   function bindPhotoGrid() {
-    draft.photos.forEach((_, i) => bindPhotoThumb(i));
+    draft.photoIds.forEach((id, i) => bindPhotoThumb(i, id));
   }
 
-  function bindPhotoThumb(i) {
+  function bindPhotoThumb(i, id) {
     const btn = document.querySelector(`.photo-remove[data-idx="${i}"]`);
     if (btn) btn.addEventListener('click', e => {
       e.stopPropagation();
-      draft.photos.splice(i, 1);
+      if (id) {
+        const idx = draft.photoIds.indexOf(id);
+        if (idx >= 0) draft.photoIds.splice(idx, 1);
+        delete draft._photoUrls[id];
+      }
       btn.closest('.photo-thumb').remove();
     });
   }
 
   // ── Save ─────────────────────────────────────────────────
   function save() {
+    const { _photoUrls, photos, ...cleanDraft } = draft;
     if (editMode && editId) {
-      const updates = { ...draft };
+      const updates = { ...cleanDraft };
       delete updates.id;
       delete updates.createdAt;
       const updated = Storage.updateLocation(editId, updates);
       close();
       if (typeof onSaveCb === 'function') onSaveCb(updated);
     } else {
-      const loc = {
-        ...draft,
-        id: Utils.generateId(),
-        createdAt: new Date().toISOString(),
-      };
+      const loc = { ...cleanDraft, id: Utils.generateId(), createdAt: new Date().toISOString() };
       Storage.addLocation(loc);
       close();
       if (typeof onSaveCb === 'function') onSaveCb(loc);

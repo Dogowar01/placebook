@@ -93,14 +93,16 @@ const Storage = (() => {
   }
 
   // ── Backup ───────────────────────────────────────────────
-  function exportBackup() {
+  async function exportBackup() {
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10);
+    const photos = await PhotoDB.getAll();
     const data = {
-      version: 1,
+      version: 2,
       exportedAt: now.toISOString(),
       locations: getLocations(),
       trips: getTrips(),
+      photos,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -113,12 +115,19 @@ const Storage = (() => {
     URL.revokeObjectURL(url);
   }
 
-  function importBackup(jsonStr) {
+  async function importBackup(jsonStr) {
     const data = JSON.parse(jsonStr);
-    if (!data || data.version !== 1) throw new Error('Invalid backup format');
+    if (!data || (data.version !== 1 && data.version !== 2)) throw new Error('Invalid backup format');
     if (Array.isArray(data.locations)) saveLocations(data.locations);
     if (Array.isArray(data.trips)) saveTrips(data.trips);
-    return { locations: (data.locations || []).length, trips: (data.trips || []).length };
+    let photoCount = 0;
+    if (data.photos && typeof data.photos === 'object') {
+      for (const [id, dataUrl] of Object.entries(data.photos)) {
+        await PhotoDB.put(id, dataUrl);
+        photoCount++;
+      }
+    }
+    return { locations: (data.locations || []).length, trips: (data.trips || []).length, photos: photoCount };
   }
 
   // Compress image to base64 data URL (max 800px, 0.7 quality)

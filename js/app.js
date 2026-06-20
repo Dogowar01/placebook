@@ -17,8 +17,22 @@ const App = (() => {
     if (typeof MapScreen !== 'undefined') MapScreen.invalidateSize();
   }
 
+  async function migratePhotosToIDB() {
+    const locs = Storage.getLocations();
+    let n = 0;
+    for (const loc of locs) {
+      if (loc.photos && loc.photos.length && !loc.photoIds) {
+        const ids = await PhotoDB.migrate(loc.photos);
+        Storage.updateLocation(loc.id, { photoIds: ids, photos: undefined });
+        n++;
+      }
+    }
+    if (n) console.log(`[Placebook] migrated ${n} location(s) photos → IndexedDB`);
+  }
+
   function init() {
     Modal.init();
+    migratePhotosToIDB();
 
     window.addEventListener('resize', onViewportChange);
     window.addEventListener('orientationchange', () => setTimeout(onViewportChange, 120));

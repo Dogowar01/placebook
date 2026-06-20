@@ -445,6 +445,16 @@ const MapScreen = (() => {
     // Weather fetch
     fetchWeather();
 
+    // Pull-down on map to refresh weather
+    let pullStartY = 0;
+    const mapEl = document.getElementById('leaflet-map');
+    mapEl.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) pullStartY = e.touches[0].clientY;
+    }, { passive: true });
+    mapEl.addEventListener('touchend', e => {
+      if (e.changedTouches[0].clientY - pullStartY > 90) fetchWeather();
+    }, { passive: true });
+
     // Search toggle
     document.getElementById('map-search-btn').addEventListener('click', () => {
       const overlay = document.getElementById('search-overlay');
@@ -717,6 +727,7 @@ const MapScreen = (() => {
     document.getElementById('map-fab').style.display = 'none';
 
     clickHandler = e => {
+      if (navigator.vibrate) navigator.vibrate(10);
       exitAddMode();
       Modal.open({ lat: e.lngLat.lat, lng: e.lngLat.lng }, loc => {
         addMarker(loc);
@@ -732,10 +743,41 @@ const MapScreen = (() => {
     addMode = false;
     document.getElementById('leaflet-map').classList.remove('add-mode');
     const banner = document.getElementById('add-mode-banner');
-    if (banner) banner.classList.add('hidden');
+    if (banner) {
+      banner.classList.add('hidden');
+      const span = banner.querySelector('span');
+      if (span) span.textContent = 'Tap anywhere on the map to add a place';
+      const gps = document.getElementById('add-gps-btn');
+      if (gps) gps.style.display = '';
+    }
     const fab = document.getElementById('map-fab');
     if (fab) fab.style.display = '';
     if (clickHandler) { map.off('click', clickHandler); clickHandler = null; }
+  }
+
+  function startMoveMode(loc) {
+    addMode = true;
+    const banner = document.getElementById('add-mode-banner');
+    if (banner) {
+      banner.querySelector('span').textContent = `Tap new location for "${loc.name.slice(0, 22)}"`;
+      const gps = document.getElementById('add-gps-btn');
+      if (gps) gps.style.display = 'none';
+      banner.classList.remove('hidden');
+    }
+    document.getElementById('leaflet-map').classList.add('add-mode');
+    const fab = document.getElementById('map-fab');
+    if (fab) fab.style.display = 'none';
+
+    clickHandler = e => {
+      if (navigator.vibrate) navigator.vibrate(10);
+      const updated = Storage.updateLocation(loc.id, { lat: e.lngLat.lat, lng: e.lngLat.lng });
+      if (markers[loc.id]) { markers[loc.id].remove(); delete markers[loc.id]; }
+      if (updated) addMarker(updated);
+      refreshClusterSource();
+      syncMarkerVisibility();
+      exitAddMode();
+    };
+    map.once('click', clickHandler);
   }
 
   // ── Empty state ──────────────────────────────────────────
@@ -797,6 +839,15 @@ const MapScreen = (() => {
       <span class="pb-pin-emoji">${cat.emoji}</span>
     `;
 
+    // Photo count badge
+    const photoCount = (loc.photoIds || loc.photos || []).length;
+    if (photoCount > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'pb-pin-badge';
+      badge.textContent = photoCount;
+      el.appendChild(badge);
+    }
+
     const popup = new maplibregl.Popup({
       offset: [0, -(pinH + 4)],
       maxWidth: '240px',
@@ -810,6 +861,15 @@ const MapScreen = (() => {
       .addTo(map);
 
     markers[loc.id] = marker;
+
+    // Async load first photo for popup if stored in IDB
+    if (loc.photoIds && loc.photoIds.length && !(loc.photos && loc.photos.length)) {
+      PhotoDB.get(loc.photoIds[0]).then(dataUrl => {
+        if (dataUrl && markers[loc.id]) {
+          markers[loc.id].getPopup().setHTML(buildPopup({ ...loc, photos: [dataUrl] }));
+        }
+      }).catch(() => {});
+    }
   }
 
   function buildPopup(loc) {
@@ -932,5 +992,5 @@ const MapScreen = (() => {
     );
   }
 
-  return { render, bind, addMarker, refreshMarker, removeMarker, flyTo, updateCount, getCenter, invalidateSize, showTripRoute, applyFilters };
+  return { render, bind, addMarker, refreshMarker, removeMarker, flyTo, updateCount, getCenter, invalidateSize, showTripRoute, applyFilters, startMoveMode };
 })();

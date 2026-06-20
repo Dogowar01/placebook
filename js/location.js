@@ -6,10 +6,18 @@ const LocationDetail = (() => {
   const ROTATIONS = [-3, 2.5, -4, 1.5, -2, 3.5, -1, 4, -3.5, 2, -1.5, 3];
   const STYLES    = ['polaroid', 'stamp', 'postcard'];
 
-  function open(id) {
+  async function open(id) {
     const loc = Storage.getLocation(id);
     if (!loc) return;
     currentId = id;
+
+    // Load photos from IndexedDB
+    if (loc.photoIds && loc.photoIds.length) {
+      const urls = await PhotoDB.getMany(loc.photoIds);
+      loc.photos = urls.filter(Boolean);
+    } else if (!loc.photos) {
+      loc.photos = [];
+    }
 
     const panel = document.getElementById('detail-panel');
     panel.innerHTML = buildHtml(loc);
@@ -22,6 +30,27 @@ const LocationDetail = (() => {
 
     Themes.applyToEl(panel, loc.theme || 'modern');
     bindEvents(loc);
+    bindSwipeNav(loc);
+  }
+
+  function bindSwipeNav(loc) {
+    const panel = document.getElementById('detail-panel');
+    if (!panel) return;
+    const allLocs = Storage.getLocations();
+    const idx = allLocs.findIndex(l => l.id === loc.id);
+    if (allLocs.length < 2 || idx === -1) return;
+    let sx = 0, sy = 0;
+    panel.addEventListener('touchstart', e => {
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+    }, { passive: true });
+    panel.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx < 0 && idx < allLocs.length - 1) open(allLocs[idx + 1].id);
+      else if (dx > 0 && idx > 0) open(allLocs[idx - 1].id);
+    }, { passive: true });
   }
 
   function close() {
@@ -268,6 +297,7 @@ const LocationDetail = (() => {
       <div class="action-sheet-menu">
         <div class="action-sheet-title">${Utils.escHtml(loc.name)}</div>
         <button class="action-sheet-btn" id="as-edit">✏️ Edit Place</button>
+        <button class="action-sheet-btn" id="as-move">📍 Move Pin</button>
         <button class="action-sheet-btn" id="as-flyto">🗺 Fly to on Map</button>
         <button class="action-sheet-btn" id="as-add-trip">🗂 Add to Trip</button>
         <button class="action-sheet-btn action-sheet-btn-danger" id="as-delete">🗑 Delete Place</button>
@@ -289,6 +319,13 @@ const LocationDetail = (() => {
           setTimeout(() => LocationDetail.open(updated.id), 100);
         });
       }, 350);
+    });
+
+    sheet.querySelector('#as-move').addEventListener('click', () => {
+      dismiss();
+      close();
+      App.switchTab('map');
+      setTimeout(() => MapScreen.startMoveMode(loc), 450);
     });
 
     sheet.querySelector('#as-flyto').addEventListener('click', () => {
@@ -339,9 +376,13 @@ const LocationDetail = (() => {
 
   function openLightbox(photos, startIdx) {
     let idx = startIdx;
+    let scale = 1, initDist = 0, initScale = 1;
 
     function show(i) {
-      lb.querySelector('.lb-img').src = photos[i];
+      const img = lb.querySelector('.lb-img');
+      img.src = photos[i];
+      img.style.transform = 'scale(1)';
+      scale = 1;
       lb.querySelector('.lb-counter').textContent = `${i + 1} / ${photos.length}`;
     }
 
@@ -350,16 +391,34 @@ const LocationDetail = (() => {
     lb.innerHTML = `
       <button class="lb-close">✕</button>
       <button class="lb-prev" ${photos.length < 2 ? 'style="display:none"' : ''}>‹</button>
-      <img class="lb-img" src="${photos[idx]}" alt="photo">
+      <img class="lb-img" src="${photos[idx]}" alt="photo" style="touch-action:none">
       <button class="lb-next" ${photos.length < 2 ? 'style="display:none"' : ''}>›</button>
       <div class="lb-counter">${idx + 1} / ${photos.length}</div>
     `;
     document.body.appendChild(lb);
 
+    const img = lb.querySelector('.lb-img');
     lb.querySelector('.lb-close').addEventListener('click', () => lb.remove());
     lb.querySelector('.lb-prev').addEventListener('click', () => { idx = (idx - 1 + photos.length) % photos.length; show(idx); });
     lb.querySelector('.lb-next').addEventListener('click', () => { idx = (idx + 1) % photos.length; show(idx); });
     lb.addEventListener('click', e => { if (e.target === lb) lb.remove(); });
+
+    // Pinch-to-zoom
+    lb.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        initDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+        initScale = scale;
+      }
+    }, { passive: true });
+    lb.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2) return;
+      const d = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+      scale = Math.min(4, Math.max(1, initScale * (d / initDist)));
+      img.style.transform = `scale(${scale})`;
+    }, { passive: true });
+    lb.addEventListener('touchend', () => {
+      if (scale < 1.15) { scale = 1; img.style.transform = 'scale(1)'; }
+    }, { passive: true });
   }
 
   return { open, close };
