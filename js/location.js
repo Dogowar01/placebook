@@ -31,6 +31,7 @@ const LocationDetail = (() => {
     Themes.applyToEl(panel, loc.theme || 'modern');
     bindEvents(loc);
     bindSwipeNav(loc);
+    loadOuraForLoc(loc);
   }
 
   function bindSwipeNav(loc) {
@@ -163,6 +164,9 @@ const LocationDetail = (() => {
           </div>
           ${loc.cost ? `<div class="d-cost" style="border-top-color:var(--th-border);color:var(--th-text-muted)">💰 Total cost: <strong style="color:var(--th-text)">${Utils.escHtml(loc.cost)}</strong></div>` : ''}
         </div>
+
+        <!-- Oura health (populated async) -->
+        <div id="oura-health-slot"></div>
 
         <!-- Share & Delete -->
         <button id="detail-share" style="width:100%;padding:14px;background:rgba(139,92,246,0.08);border:1.5px solid rgba(139,92,246,0.25);border-radius:16px;color:#A78BFA;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">
@@ -419,6 +423,69 @@ const LocationDetail = (() => {
     lb.addEventListener('touchend', () => {
       if (scale < 1.15) { scale = 1; img.style.transform = 'scale(1)'; }
     }, { passive: true });
+  }
+
+  // ── Oura health data ───────────────────────────────────
+  async function loadOuraForLoc(loc) {
+    if (typeof Oura === 'undefined' || !Oura.getToken()) return;
+    const date = loc.date || loc.createdAt?.slice(0, 10);
+    if (!date) return;
+
+    const slot = document.getElementById('oura-health-slot');
+    if (!slot) return;
+
+    // Use cached data if date matches
+    if (loc.oura && loc.oura.date === date) {
+      slot.innerHTML = buildOuraHtml(loc.oura);
+      return;
+    }
+
+    slot.innerHTML = `<div class="oura-loading">⬡ Loading health data…</div>`;
+    const data = await Oura.fetchDay(date);
+    if (!data) { slot.innerHTML = ''; return; }
+
+    // Cache on location
+    Storage.updateLocation(loc.id, { oura: data });
+    loc.oura = data;
+    slot.innerHTML = buildOuraHtml(data);
+  }
+
+  function scoreClass(n) {
+    if (n === null || n === undefined) return '';
+    if (n >= 85) return 'oura-score-high';
+    if (n >= 70) return 'oura-score-med';
+    return 'oura-score-low';
+  }
+
+  function buildOuraHtml(d) {
+    const fmt = n => n !== null && n !== undefined ? n : '—';
+    const fmtSteps = n => n !== null && n !== undefined ? n.toLocaleString() : '—';
+    return `
+      <div class="d-card oura-health-card">
+        <div class="d-section-label oura-label-row">
+          <span>⬡ Oura · ${d.date}</span>
+        </div>
+        <div class="oura-metrics">
+          <div class="oura-metric">
+            <div class="oura-metric-score ${scoreClass(d.readiness)}">${fmt(d.readiness)}</div>
+            <div class="oura-metric-label">Readiness</div>
+          </div>
+          <div class="oura-metric">
+            <div class="oura-metric-score ${scoreClass(d.sleep)}">${fmt(d.sleep)}</div>
+            <div class="oura-metric-label">Sleep</div>
+          </div>
+          <div class="oura-metric">
+            <div class="oura-metric-score ${scoreClass(d.activity)}">${fmt(d.activity)}</div>
+            <div class="oura-metric-label">Activity</div>
+          </div>
+          <div class="oura-metric">
+            <div class="oura-metric-score">${fmtSteps(d.steps)}</div>
+            <div class="oura-metric-label">Steps</div>
+          </div>
+        </div>
+        ${d.sleepHours ? `<div class="oura-sleep-sub">${d.sleepHours}h sleep</div>` : ''}
+      </div>
+    `;
   }
 
   return { open, close };

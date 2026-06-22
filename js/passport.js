@@ -81,6 +81,7 @@ const Passport = (() => {
           <button class="passport-tab active" data-ptab="stats">📊 Stats</button>
           <button class="passport-tab" data-ptab="achievements">🏆 Achievements</button>
           <button class="passport-tab" data-ptab="backup">💾 Backup</button>
+          <button class="passport-tab" data-ptab="connect">🔗 Connect</button>
         </div>
         <div class="passport-content pb-bottom" id="passport-tab-content">
           ${renderStats(locations)}
@@ -220,6 +221,27 @@ const Passport = (() => {
     `;
   }
 
+  function renderConnect() {
+    const hasToken = typeof Oura !== 'undefined' && !!Oura.getToken();
+    return `
+      <div class="section-card">
+        <div class="section-card-header">⬡ Oura Ring</div>
+        <div class="section-card-body">
+          <p class="oura-connect-hint">Connect your Oura Ring to see readiness, sleep, and step data alongside each place you visit.</p>
+          <div class="oura-token-row">
+            <input type="password" id="oura-token-input" class="oura-token-input"
+              placeholder="Paste Personal Access Token…"
+              value="${hasToken ? '••••••••••••' : ''}">
+            <button class="oura-save-btn" id="oura-save-btn">${hasToken ? 'Update' : 'Connect'}</button>
+          </div>
+          ${hasToken ? '<button class="oura-disconnect-btn" id="oura-disconnect-btn">Disconnect</button>' : ''}
+          <div id="oura-connect-status" class="oura-connect-status"></div>
+          <p class="oura-get-token">Get your token: ouraring.com → Profile → Personal Access Tokens</p>
+        </div>
+      </div>
+    `;
+  }
+
   function renderBackup() {
     return `
       <div class="backup-card">
@@ -304,6 +326,7 @@ const Passport = (() => {
         if (tab === 'stats') { content.innerHTML = renderStats(locations); const wb = document.getElementById('wrapped-btn'); if (wb) wb.addEventListener('click', () => ShareCard.generateWrapped(new Date().getFullYear())); }
         else if (tab === 'achievements') content.innerHTML = renderAchievements(locations);
         else if (tab === 'backup') { content.innerHTML = renderBackup(); bindBackup(); }
+        else if (tab === 'connect') { content.innerHTML = renderConnect(); bindConnect(); }
       });
     });
   }
@@ -341,6 +364,42 @@ const Passport = (() => {
       };
       reader.readAsText(file);
     });
+  }
+
+  function bindConnect() {
+    const saveBtn = document.getElementById('oura-save-btn');
+    const input   = document.getElementById('oura-token-input');
+    const status  = document.getElementById('oura-connect-status');
+    const discBtn = document.getElementById('oura-disconnect-btn');
+
+    if (saveBtn && input) {
+      saveBtn.addEventListener('click', async () => {
+        const raw = input.value.trim();
+        if (!raw || raw === '••••••••••••') { status.textContent = 'Paste your token first.'; return; }
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Checking…';
+        status.textContent = '';
+        const ok = await Oura.testToken(raw);
+        if (ok) {
+          Oura.setToken(raw);
+          status.innerHTML = '<span class="oura-status-ok">✓ Connected! Health data will appear on your places.</span>';
+          saveBtn.textContent = 'Connected';
+          input.value = '••••••••••••';
+        } else {
+          status.innerHTML = '<span class="oura-status-err">✗ Token not recognised — check and try again.</span>';
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Connect';
+        }
+      });
+    }
+
+    if (discBtn) {
+      discBtn.addEventListener('click', () => {
+        Oura.setToken('');
+        document.getElementById('passport-tab-content').innerHTML = renderConnect();
+        bindConnect();
+      });
+    }
   }
 
   return { render, bind };

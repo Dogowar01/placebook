@@ -2107,3 +2107,117 @@ img { display: block; }
   color: white;
   box-shadow: 0 2px 8px rgba(139,92,246,0.4);
 }
+
+/* ── Oura health card ──────────────────────────────────── */
+.oura-health-card {
+  background: var(--th-card-bg, var(--card-bg));
+  border-color: var(--th-border, var(--border));
+}
+.oura-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--th-text-muted, var(--text-muted));
+}
+.oura-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+.oura-metric {
+  text-align: center;
+}
+.oura-metric-score {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--th-text, var(--text));
+}
+.oura-metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+  color: var(--th-text-muted, var(--text-muted));
+}
+.oura-score-high { color: #10B981; }
+.oura-score-med  { color: #F59E0B; }
+.oura-score-low  { color: #F87171; }
+.oura-sleep-sub {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--th-text-muted, var(--text-muted));
+  text-align: center;
+}
+.oura-loading {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Oura Connect tab ──────────────────────────────────── */
+.oura-connect-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.oura-token-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.oura-token-input {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+}
+.oura-token-input:focus {
+  border-color: var(--accent);
+}
+.oura-save-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.oura-save-btn:disabled {
+  opacity: 0.5;
+}
+.oura-disconnect-btn {
+  background: none;
+  border: 1.5px solid #F87171;
+  border-radius: 12px;
+  color: #F87171;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.oura-connect-status {
+  font-size: 13px;
+  min-height: 18px;
+  margin-bottom: 8px;
+}
+.oura-status-ok  { color: #10B981; }
+.oura-status-err { color: #F87171; }
+.oura-get-token {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
