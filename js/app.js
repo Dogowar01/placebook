@@ -139,7 +139,7 @@ const App = (() => {
         n++;
       }
     }
-    if (n) console.log(`[Placebook] migrated ${n} location(s) photos → IndexedDB`);
+    if (n) console.log(`[Stamped] migrated ${n} location(s) photos → IndexedDB`);
   }
 
   function init() {

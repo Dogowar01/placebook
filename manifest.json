@@ -1,7 +1,7 @@
 {
-  "name": "Placebook",
-  "short_name": "Placebook",
-  "description": "Your personal location scrapbook",
+  "name": "Stamped",
+  "short_name": "Stamped",
+  "description": "Your personal travel diary — stamp every place you've been",
   "start_url": "/placebook/",
   "scope": "/placebook/",
   "display": "standalone",

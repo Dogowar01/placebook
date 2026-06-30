@@ -320,7 +320,7 @@ const ShareCard = (() => {
       ctx.font = 'bold 32px Inter, sans-serif';
       ctx.fillStyle = '#A78BFA';
       ctx.textAlign = 'left';
-      ctx.fillText('📍 Placebook', 60, y);
+      ctx.fillText('📍 Stamped', 60, y);
       ctx.font = '24px Inter, sans-serif';
       ctx.fillStyle = 'rgba(240,242,250,0.28)';
       ctx.textAlign = 'right';
@@ -366,7 +366,7 @@ const ShareCard = (() => {
     overlay.querySelector('#share-download').addEventListener('click', () => {
       const a = document.createElement('a');
       a.href     = imgSrc;
-      a.download = 'placebook-share.jpg';
+      a.download = 'stamped-share.jpg';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -377,8 +377,8 @@ const ShareCard = (() => {
       shareBtn.addEventListener('click', () => {
         canvas.toBlob(blob => {
           if (!blob) return;
-          const file = new File([blob], 'placebook-share.jpg', { type: 'image/jpeg' });
-          navigator.share({ files: [file], title: 'Placebook' }).catch(() => {});
+          const file = new File([blob], 'stamped-share.jpg', { type: 'image/jpeg' });
+          navigator.share({ files: [file], title: 'Stamped' }).catch(() => {});
         }, 'image/jpeg', 0.92);
       });
     }
@@ -489,7 +489,7 @@ const ShareCard = (() => {
 
     // Branding
     ctx.font = 'bold 32px Inter, sans-serif'; ctx.fillStyle = '#A78BFA'; ctx.textAlign = 'center';
-    ctx.fillText('📍 Placebook', SIZE/2, y);
+    ctx.fillText('📍 Stamped', SIZE/2, y);
 
     ctx.textAlign = 'left';
     showShareOverlay(canvas);

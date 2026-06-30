@@ -29,7 +29,7 @@ const Onboarding = (() => {
       <div class="ob-welcome">
         <div class="ob-welcome-top">
           <div class="ob-logo">📍</div>
-          <h1 class="ob-title">Welcome to<br>Placebook</h1>
+          <h1 class="ob-title">Welcome to<br>Stamped</h1>
           <p class="ob-sub">Your personal scrapbook of everywhere you've been</p>
         </div>
         <div class="ob-features">

@@ -228,7 +228,7 @@ const MapScreen = (() => {
           <div class="map-logo">
             <span class="map-logo-emoji">📍</span>
             <div>
-              <div class="map-logo-text">Placebook</div>
+              <div class="map-logo-text">Stamped</div>
               <div class="map-logo-count" id="map-count">0 places</div>
             </div>
           </div>
