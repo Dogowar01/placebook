@@ -39,7 +39,7 @@ const Onboarding = (() => {
           <div class="ob-feat"><span>🏆</span><span>Travel passport &amp; achievements</span></div>
         </div>
         <div class="ob-actions">
-          <button class="ob-btn-primary" id="ob-use-location">📍 Use My Location</button>
+          <button class="ob-btn-primary" id="ob-use-location">Continue</button>
           <button class="ob-btn-ghost" id="ob-skip">Skip for now</button>
         </div>
       </div>
